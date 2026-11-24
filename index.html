@@ -1,0 +1,3273 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF 工作台｜100% 本機處理的線上 PDF 工具</title>
+<meta name="description" content="合併、拆分、排列、旋轉、裁剪、壓縮、浮水印、頁碼、簽名、編輯、密文、比較、表單填寫。所有處理都在瀏覽器完成，檔案不會上傳。">
+<meta name="theme-color" content="#e5484d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PDF 工作台">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e5484d'/%3E%3Cpath d='M11 7h7l5 5v13H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://unpkg.com">
+<style>
+:root{
+  --bg:#f2f3f5; --surface:#fff; --surface2:#f7f8fa; --ink:#141820; --muted:#677084; --line:#e2e5eb; --line2:#d3d8e0;
+  --accent:#e5484d; --accent-h:#d43a3f; --accent-soft:#fdecec; --sel:#2563eb; --sel-soft:rgba(37,99,235,.12);
+  --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+  --r:12px; --r-s:8px;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 18px rgba(16,24,40,.07);
+  --shadow-l:0 12px 40px rgba(16,24,40,.22);
+  --font:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --thumb-w:168px;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0e1014;--surface:#171a20;--surface2:#1d2128;--ink:#e9ebf0;--muted:#9aa3b5;--line:#2a2f38;--line2:#363c47;
+  --accent-soft:#3b1c1e;--sel:#4f8cff;--sel-soft:rgba(79,140,255,.2);--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35)}
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;display:flex;flex-direction:column;height:100dvh;background:var(--bg);color:var(--ink);font:14px/1.55 var(--font);
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation;cursor:pointer}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:10px;padding:0 14px;padding-top:env(safe-area-inset-top);min-height:56px;background:var(--surface);border-bottom:1px solid var(--line);flex:none}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;white-space:nowrap}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:#fff}
+.logo svg{width:18px;height:18px}
+.privacy{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent);padding:3px 9px;border-radius:99px}
+.privacy svg{width:14px;height:14px}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 14px;border-radius:var(--r-s);border:1px solid var(--line2);background:var(--surface);font-weight:500;white-space:nowrap;transition:background .15s,border-color .15s,transform .05s;user-select:none;-webkit-user-select:none}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-h)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface2)}
+.btn.icon{padding:0;width:38px}
+.btn.sm{min-height:32px;padding:0 10px;font-size:13px}
+.btn.icon.sm{width:32px}
+.btn.block{width:100%}
+.btn.danger{color:var(--err)}
+.btn.on{background:var(--sel-soft);border-color:var(--sel);color:var(--sel)}
+
+/* ---------- app layout ---------- */
+.app{flex:1;min-height:0;display:grid;grid-template-columns:200px minmax(0,1fr) 340px}
+.toolnav{background:var(--surface);border-right:1px solid var(--line);overflow:auto;padding:10px 8px 20px}
+.toolnav h6{margin:14px 10px 4px;font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.toolnav h6:first-child{margin-top:2px}
+.tbtn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:transparent;border-radius:var(--r-s);text-align:left;color:var(--ink)}
+.tbtn:hover{background:var(--surface2)}
+.tbtn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+.workspace{position:relative;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ws-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.ws-bar .info{font-size:13px;color:var(--muted);margin-right:6px;font-variant-numeric:tabular-nums}
+.ws-bar .info b{color:var(--ink)}
+.ws-bar .sp{flex:1}
+.ws-bar input[type=range]{width:90px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--thumb-w),1fr));gap:18px;padding:18px 18px 120px;align-items:end}
+
+.card{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.thumb{position:relative;width:100%;background:#fff;border-radius:6px;box-shadow:var(--shadow);overflow:hidden;outline:2px solid transparent;outline-offset:3px;transition:outline-color .12s,transform .12s}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;-webkit-user-drag:none;pointer-events:none}
+.thumb svg.ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.thumb .ph{position:absolute;inset:0;display:grid;place-items:center;color:#b6bcc8;font-size:12px}
+.card.sel .thumb{outline-color:var(--sel)}
+.card .check{position:absolute;top:6px;left:6px;width:24px;height:24px;border-radius:50%;border:2px solid #fff;background:rgba(20,24,32,.28);display:grid;place-items:center;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);opacity:0;transition:opacity .12s}
+.card:hover .check,.card.sel .check,body.touch .card .check{opacity:1}
+.card.sel .check{background:var(--sel);border-color:var(--sel)}
+.card .check svg{width:14px;height:14px;stroke-width:3;opacity:0}
+.card.sel .check svg{opacity:1}
+.cap{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--muted);min-height:20px}
+.cap .num{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.cap .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.cap .fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.cap .bd{display:flex;gap:3px}
+.cap .bd span{font-size:10px;padding:0 5px;border-radius:4px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);line-height:16px}
+.card-acts{position:absolute;top:6px;right:6px;display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .12s}
+.card:hover .card-acts,body.touch .card-acts{opacity:1}
+.card-acts button{width:30px;height:30px;border-radius:8px;border:0;display:grid;place-items:center;background:rgba(20,24,32,.72);color:#fff;backdrop-filter:blur(4px)}
+.card-acts button:hover{background:rgba(20,24,32,.9)}
+.card-acts svg{width:16px;height:16px}
+body.touch .card-acts button{width:32px;height:32px}
+.card.dragging{opacity:.3}
+.drop-ind{position:fixed;width:4px;border-radius:4px;background:var(--sel);pointer-events:none;z-index:50;box-shadow:0 0 0 3px var(--sel-soft)}
+.drag-ghost{position:fixed;z-index:60;pointer-events:none;width:90px;border-radius:6px;box-shadow:var(--shadow-l);transform:rotate(-4deg);background:#fff}
+.drag-ghost img{width:100%;display:block;border-radius:6px}
+.drag-ghost b{position:absolute;top:-8px;right:-8px;background:var(--sel);color:#fff;border-radius:99px;font-size:12px;min-width:22px;height:22px;display:grid;place-items:center;padding:0 6px}
+
+.empty{position:absolute;inset:0;display:grid;place-items:center;padding:24px;overflow:auto}
+.dropzone{max-width:680px;width:100%;text-align:center;padding:44px 28px;border:2px dashed var(--line2);border-radius:20px;background:var(--surface)}
+.dropzone h2{margin:14px 0 6px;font-size:22px}
+.dropzone p{margin:0 0 20px;color:var(--muted)}
+.dz-icon{width:64px;height:64px;margin:auto;border-radius:18px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.dz-icon svg{width:32px;height:32px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:26px}
+.chips button{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 12px;font-size:12.5px;color:var(--muted)}
+.chips button:hover{color:var(--ink);border-color:var(--line2)}
+.dragover-veil{position:fixed;inset:0;z-index:90;background:color-mix(in srgb,var(--sel) 14%,transparent);border:3px dashed var(--sel);display:none;place-items:center;font-size:22px;font-weight:700;color:var(--sel);pointer-events:none}
+body.dragover .dragover-veil{display:grid}
+
+/* ---------- panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;overscroll-behavior:contain}
+.ph-head{padding:18px 18px 6px}
+.ph-row{display:flex;align-items:center;gap:8px}
+.ph-head h3{margin:0;font-size:17px;display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.ph-head p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.sec{padding:12px 18px;border-top:1px solid var(--line)}
+.sec:first-of-type{border-top:0}
+.sec h4{margin:0 0 10px;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row+.row{margin-top:8px}
+.row>.btn{flex:1 1 auto}
+.fld{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fld:last-child{margin-bottom:0}
+.fld>span{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+.fld output{color:var(--ink);font-variant-numeric:tabular-nums}
+.inp{width:100%;min-height:38px;padding:7px 10px;border:1px solid var(--line2);border-radius:var(--r-s);background:var(--surface)}
+textarea.inp{resize:vertical;min-height:70px}
+.inp:focus{outline:2px solid var(--sel-soft);border-color:var(--sel)}
+input[type=range]{width:100%;accent-color:var(--accent);height:26px}
+input[type=color]{width:42px;height:34px;padding:2px;border:1px solid var(--line2);border-radius:8px;background:var(--surface)}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:18px;height:18px;margin:0}
+.chk{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-s);padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;border-radius:6px;padding:6px 8px;font-size:13px;color:var(--muted);min-height:32px}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.grid9{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:132px}
+.grid9 button{height:30px;border:1px solid var(--line2);background:var(--surface);border-radius:6px;display:grid;place-items:center}
+.grid9 button::after{content:"";width:8px;height:8px;border-radius:2px;background:var(--line2)}
+.grid9 button.on{border-color:var(--accent)}
+.grid9 button.on::after{background:var(--accent)}
+.note{font-size:12.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-s);padding:9px 11px;line-height:1.6}
+.note.ok{border-color:color-mix(in srgb,var(--ok) 40%,transparent);background:color-mix(in srgb,var(--ok) 8%,transparent)}
+.note.warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 9%,transparent)}
+.note b{color:var(--ink)}
+.preview-box{background:var(--surface2);border:1px solid var(--line);border-radius:var(--r-s);display:grid;place-items:center;padding:10px;min-height:160px}
+.preview-box canvas{max-width:100%;max-height:300px;box-shadow:var(--shadow);background:#fff}
+.srclist{display:flex;flex-direction:column;gap:6px}
+.srcitem{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-s);font-size:13px}
+.srcitem .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.srcitem .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srcitem small{color:var(--muted);white-space:nowrap}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.preset{border:1px solid var(--line2);background:var(--surface);border-radius:var(--r-s);padding:10px;text-align:left}
+.preset b{display:block;font-size:14px}
+.preset small{color:var(--muted);font-size:12px}
+.preset.on{border-color:var(--accent);background:var(--accent-soft)}
+.result{border:1px solid var(--line);border-radius:var(--r-s);padding:12px;background:var(--surface2)}
+.result .big{font-size:22px;font-weight:700}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.siglist{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sig{position:relative;border:1px solid var(--line2);border-radius:var(--r-s);height:70px;background:#fff center/contain no-repeat;background-origin:content-box;padding:8px}
+.sig.on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sig .x{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:6px;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:12px;line-height:1}
+.fieldlist{display:flex;flex-direction:column;gap:12px}
+.fieldlist .fld>span small{color:var(--muted)}
+.kbd{font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+ul.tips{margin:0;padding-left:18px;color:var(--muted);font-size:13px}
+ul.tips li{margin:3px 0}
+
+/* ---------- overlays ---------- */
+.overlay{position:fixed;inset:0;z-index:40;background:var(--bg);display:flex;flex-direction:column}
+.overlay[hidden]{display:none}
+.ov-top{display:flex;align-items:center;gap:8px;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap;flex:none}
+.ov-top .ttl{font-weight:700;margin-right:6px}
+.ov-top .sp{flex:1}
+.pgnav{display:flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.pgnav span{min-width:70px;text-align:center;font-size:13px}
+.ed-tools{display:flex;gap:4px;padding:6px 10px;background:var(--surface);border-bottom:1px solid var(--line);overflow-x:auto;flex:none;scrollbar-width:none}
+.ed-tools::-webkit-scrollbar{display:none}
+.etb{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:58px;padding:6px 6px 4px;border:1px solid transparent;border-radius:var(--r-s);background:transparent;font-size:11.5px;color:var(--muted)}
+.etb:hover{background:var(--surface2)}
+.etb.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.etb svg.i{width:22px;height:22px}
+.ed-props{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--line);min-height:50px;font-size:13px;flex:none}
+.ed-props .lbl{color:var(--muted)}
+.ed-props input[type=range]{width:110px}
+.ed-props .hint{color:var(--muted)}
+.ed-props .grp{display:flex;gap:6px;align-items:center}
+.ed-props .vsep{width:1px;height:24px;background:var(--line2)}
+.sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line2);padding:0}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.ed-stage{flex:1;overflow:auto;position:relative;background:var(--bg);-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom}
+.ed-pagewrap{min-width:100%;min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;width:max-content;margin:auto}
+.ed-page{position:relative;background:#fff;box-shadow:var(--shadow-l);flex:none}
+.ed-page canvas{position:absolute;inset:0;width:100%;height:100%}
+.ed-page svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ed-page.draw{cursor:crosshair}
+.ed-page.place{cursor:copy}
+.ed-page.text{cursor:text}
+.ed-busy{position:absolute;top:10px;right:10px;font-size:12px;color:var(--muted)}
+
+.cmp-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.cmp-col{overflow:auto;background:var(--bg);padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;-webkit-overflow-scrolling:touch}
+.cmp-col .cpg{position:relative;width:100%;max-width:900px;background:#fff;box-shadow:var(--shadow)}
+.cmp-col .cpg canvas{width:100%;height:100%;display:block}
+.cmp-col .cpg i{position:absolute;bottom:-20px;left:0;font-style:normal;font-size:11px;color:var(--muted)}
+.cmp-col h5{margin:0;align-self:stretch;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-diff{flex:1;overflow:auto;padding:18px;background:var(--bg)}
+.diffbox{max-width:980px;margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font:13.5px/1.75 var(--font);white-space:pre-wrap;word-break:break-word}
+.diffbox del{background:#fde2e1;color:#b42318;text-decoration:line-through;text-decoration-color:rgba(180,35,24,.5)}
+.diffbox ins{background:#dcfae6;color:#067647;text-decoration:none}
+@media (prefers-color-scheme:dark){.diffbox del{background:#4a1d1b;color:#ffb4ab}.diffbox ins{background:#123d26;color:#86efac}}
+.diffbox .pg{display:block;color:var(--muted);font-size:12px;font-weight:600;margin:10px 0 2px;border-top:1px dashed var(--line2);padding-top:8px}
+.diffbox .fold{display:block;color:var(--muted);font-size:12px;background:var(--surface2);border-radius:6px;padding:2px 8px;margin:4px 0}
+.diffsum{max-width:980px;margin:0 auto 12px;display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+.diffsum span{padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line)}
+
+/* ---------- modal / busy / toast ---------- */
+.modal-back{position:fixed;inset:0;z-index:100;background:rgba(10,12,16,.45);display:grid;place-items:center;padding:16px;animation:fade .15s}
+.modal{width:min(460px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-l);animation:pop .18s}
+.modal.wide{width:min(720px,100%)}
+.modal header{padding:16px 18px 4px;font-weight:700;font-size:16px}
+.modal .mb{padding:10px 18px}
+.modal footer{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{transform:scale(.97);opacity:0}}
+.busy{position:fixed;inset:0;z-index:120;background:rgba(10,12,16,.35);display:none;place-items:center}
+.busy.on{display:grid}
+.busy .box{width:min(340px,86vw);background:var(--surface);border-radius:14px;padding:18px;box-shadow:var(--shadow-l)}
+.busy .msg{font-size:14px;margin-bottom:10px}
+.busy .bar i{background:var(--accent);transition:width .15s}
+.toasts{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:130;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:#1b1f27;color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;box-shadow:var(--shadow-l);max-width:min(560px,90vw);animation:pop .2s}
+.toast.warn{background:#7a4a06}
+.toast.err{background:#9b1c1c}
+.sigpad{position:relative;border:1px solid var(--line2);border-radius:12px;background:#fff;height:230px;touch-action:none;overflow:hidden}
+.sigpad canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.sigpad .base{position:absolute;left:8%;right:8%;bottom:56px;border-bottom:1.5px dashed #c5cad3;pointer-events:none}
+.sigpad .hint{position:absolute;left:8%;bottom:34px;color:#aab0bb;font-size:12px;pointer-events:none}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  .app{grid-template-columns:78px minmax(0,1fr) 320px}
+  .toolnav{padding:8px 6px}
+  .toolnav h6{display:none}
+  .tbtn{flex-direction:column;gap:3px;padding:8px 2px;font-size:11px;text-align:center;line-height:1.25}
+  .tbtn+.tbtn{margin-top:2px}
+}
+@media (max-width:900px){ .privacy span{display:none} }
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto auto}
+  .workspace{grid-row:1}
+  .panel{grid-row:2;border-left:0;border-top:1px solid var(--line);max-height:42dvh}
+  .panel.collapsed{max-height:60px;overflow:hidden}
+  .panel.collapsed .ph-head{padding:12px 14px}
+  .panel.collapsed .ph-head p{display:none}
+  .toolnav{grid-row:3;display:flex;gap:2px;overflow-x:auto;border-right:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  .tbtn{min-width:70px}
+  .tbtn+.tbtn{margin-top:0}
+  .brand b{display:none}
+  .top-actions .lbl{display:none}
+  .grid{gap:12px;padding:12px 12px 80px}
+  :root{--thumb-w:130px}
+  .cmp-body{grid-template-columns:1fr}
+}
+.panel-toggle{display:none!important}
+.panel-toggle svg{transition:transform .2s}
+.panel:not(.collapsed) .panel-toggle svg{transform:rotate(180deg)}
+@media (max-width:760px){.panel-toggle{display:inline-flex!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></symbol>
+  <symbol id="i-rotr" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-rotl" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+  <symbol id="i-images" viewBox="0 0 24 24"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><rect x="6" y="2" width="16" height="16" rx="2"/><circle cx="12" cy="8" r="2"/><path d="m22 13-1.3-1.3a2 2 0 0 0-2.8 0L9 20"/></symbol>
+  <symbol id="i-compress" viewBox="0 0 24 24"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-sign" viewBox="0 0 24 24"><path d="M3 17c2.5-1 3.5-9 6-9 2 0 .5 7 3 7 1.7 0 2.2-3 4-3 1.5 0 1.8 2 5 2"/><path d="M3 21h18"/></symbol>
+  <symbol id="i-redact" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><rect x="6" y="9" width="12" height="3" fill="currentColor"/><path d="M6 15.5h7"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol>
+  <symbol id="i-compare" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="18" rx="1.5"/><path d="M5.5 8h2M5.5 12h2M16.5 8h2M16.5 12h2"/></symbol>
+  <symbol id="i-form" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 21h14"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+  <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m4 4 7.07 17 2.51-7.39L21 11.07z"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+  <symbol id="i-hl" viewBox="0 0 24 24"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></symbol>
+  <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5"/></symbol>
+  <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9.5" ry="7"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><path d="M5 19 19 5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 19 19 5M10 5h9v9"/></symbol>
+  <symbol id="i-zoomin" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+  <symbol id="i-zoomout" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11h6"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-blank" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M12 11v6M9 14h6"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo"><svg class="i"><use href="#i-file"/></svg></div>
+    <b>PDF 工作台</b>
+    <span class="privacy" title="所有運算皆在您的瀏覽器中完成，檔案不會上傳到任何伺服器"><svg class="i"><use href="#i-lock"/></svg><span>檔案不離開本機</span></span>
+  </div>
+  <div class="top-actions">
+    <button class="btn icon ghost" id="btnUndo" title="復原 (Ctrl/⌘+Z)" disabled><svg class="i"><use href="#i-undo"/></svg></button>
+    <button class="btn icon ghost" id="btnRedo" title="重做 (Ctrl/⌘+Shift+Z)" disabled><svg class="i"><use href="#i-redo"/></svg></button>
+    <button class="btn" id="btnAdd"><svg class="i"><use href="#i-plus"/></svg><span class="lbl">加入檔案</span></button>
+    <button class="btn primary" id="btnExport" disabled><svg class="i"><use href="#i-down"/></svg><span class="lbl">匯出 PDF</span></button>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="toolnav" id="toolnav" aria-label="工具"></nav>
+  <main class="workspace" id="workspace">
+    <div class="ws-bar" id="wsBar" hidden>
+      <span class="info" id="wsInfo"></span>
+      <button class="btn sm ghost" data-ws="all">全選</button>
+      <button class="btn sm ghost" data-ws="none">取消選取</button>
+      <span class="sp"></span>
+      <button class="btn sm icon" data-ws="rotl" title="向左旋轉所選頁"><svg class="i"><use href="#i-rotl"/></svg></button>
+      <button class="btn sm icon" data-ws="rotr" title="向右旋轉所選頁"><svg class="i"><use href="#i-rotr"/></svg></button>
+      <button class="btn sm icon" data-ws="edit" title="編輯所選頁"><svg class="i"><use href="#i-edit"/></svg></button>
+      <button class="btn sm icon danger" data-ws="del" title="刪除所選頁"><svg class="i"><use href="#i-trash"/></svg></button>
+      <input type="range" id="thumbSize" min="110" max="280" value="168" title="縮圖大小" aria-label="縮圖大小">
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty">
+      <div class="dropzone">
+        <div class="dz-icon"><svg class="i"><use href="#i-up"/></svg></div>
+        <h2>拖曳 PDF 或圖片到這裡</h2>
+        <p>可一次加入多個檔案。所有處理都在您的瀏覽器中完成，<b>檔案不會上傳</b>。</p>
+        <button class="btn primary" id="btnAdd2"><svg class="i"><use href="#i-plus"/></svg>選擇檔案</button>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+  </main>
+  <aside class="panel" id="panel"></aside>
+</div>
+
+<input type="file" id="fileInput" multiple accept="application/pdf,.pdf,image/*,.heic,.heif" hidden>
+<div class="dragover-veil">放開以加入檔案</div>
+
+<!-- 頁面編輯器 -->
+<div class="overlay" id="editor" hidden>
+  <div class="ov-top">
+    <button class="btn" id="edClose"><svg class="i"><use href="#i-check"/></svg>完成</button>
+    <div class="pgnav">
+      <button class="btn icon ghost" id="edPrev" title="上一頁"><svg class="i"><use href="#i-left"/></svg></button>
+      <span id="edLbl">1 / 1</span>
+      <button class="btn icon ghost" id="edNext" title="下一頁"><svg class="i"><use href="#i-right"/></svg></button>
+    </div>
+    <span class="sp"></span>
+    <button class="btn icon ghost" id="edUndo" title="復原"><svg class="i"><use href="#i-undo"/></svg></button>
+    <button class="btn icon ghost" id="edRedo" title="重做"><svg class="i"><use href="#i-redo"/></svg></button>
+    <button class="btn icon ghost" id="edZoomOut" title="縮小"><svg class="i"><use href="#i-zoomout"/></svg></button>
+    <button class="btn sm ghost" id="edZoomFit" title="符合畫面">符合</button>
+    <button class="btn icon ghost" id="edZoomIn" title="放大"><svg class="i"><use href="#i-zoomin"/></svg></button>
+  </div>
+  <div class="ed-tools" id="edTools"></div>
+  <div class="ed-props" id="edProps"></div>
+  <div class="ed-stage" id="edStage">
+    <div class="ed-pagewrap"><div class="ed-page" id="edPage"><canvas id="edCanvas"></canvas><svg id="edSvg" xmlns="http://www.w3.org/2000/svg"></svg></div></div>
+  </div>
+</div>
+
+<!-- 比較 -->
+<div class="overlay" id="compare" hidden>
+  <div class="ov-top">
+    <button class="btn" id="cmpClose"><svg class="i"><use href="#i-x"/></svg>關閉</button>
+    <span class="ttl">比較 PDF</span>
+    <label class="row" style="gap:6px">A <select class="inp" id="cmpA" style="width:auto;max-width:200px"></select></label>
+    <label class="row" style="gap:6px">B <select class="inp" id="cmpB" style="width:auto;max-width:200px"></select></label>
+    <button class="btn sm" id="cmpUpload"><svg class="i"><use href="#i-up"/></svg>開啟其他檔案</button>
+    <span class="sp"></span>
+    <div class="seg" id="cmpMode"><button data-v="side" class="on">並排檢視</button><button data-v="text">文字差異</button></div>
+    <label class="chk" id="cmpSyncWrap"><input type="checkbox" id="cmpSync" checked>同步捲動</label>
+    <label class="chk" id="cmpOnlyWrap" hidden><input type="checkbox" id="cmpOnly" checked>只顯示差異</label>
+  </div>
+  <div class="cmp-body" id="cmpSide"><div class="cmp-col" id="cmpColA"></div><div class="cmp-col" id="cmpColB"></div></div>
+  <div class="cmp-diff" id="cmpDiff" hidden></div>
+</div>
+
+<div class="busy" id="busy"><div class="box"><div class="msg" id="busyMsg">處理中…</div><div class="bar"><i id="busyBar" style="width:0"></i></div></div></div>
+<div class="toasts" id="toasts"></div>
+<script>
+'use strict';
+/* =====================================================================
+   PDF 工作台 — 100% 純前端 PDF 工具
+   函式庫（皆由 CDN 依需求延遲載入）：
+   - pdf.js   ：頁面渲染、縮圖、文字擷取、表單偵測
+   - pdf-lib  ：合併/拆分/旋轉/裁剪/繪製/表單/壓縮（不重繪文字層）
+   - JSZip    ：批次下載
+   - jsdiff   ：文字差異比對
+   中文字（標註、浮水印、頁碼）以「裝置內建字型」繪製後嵌入，
+   不需下載任何 CJK 字型檔。
+   ===================================================================== */
+
+/* 函式庫版本與 CDN（主要：jsDelivr；失敗時自動改用 unpkg） */
+const CDN_HOSTS = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/'];
+const PKG = {
+  pdfjs: 'pdfjs-dist@4.10.38/',
+  pdflib: 'pdf-lib@1.17.1/dist/pdf-lib.min.js',
+  jszip: 'jszip@3.10.1/dist/jszip.min.js',
+  diff: 'diff@5.2.0/dist/diff.min.js',
+};
+/** pdf.js 實際載入成功的根網址（cMap、標準字型、worker 都從同一個 CDN 取得） */
+let PDFJS_BASE = CDN_HOSTS[0] + PKG.pdfjs;
+
+/* ---------------- 基本工具 ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let _uid = 0;
+const uid = p => p + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
+const tick = () => new Promise(r => setTimeout(r, 0));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const fmtSize = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(2) + ' MB';
+const MM = 72 / 25.4;
+const DPR = () => Math.min(window.devicePixelRatio || 1, 2);
+const MAX_CANVAS_PX = 16000000; // iOS Safari 單一 canvas 上限約 16.7M 像素
+const ICON = (id, cls = 'i') => `<svg class="${cls}"><use href="#i-${id}"/></svg>`;
+const FONT_SANS = '"PingFang TC","Heiti TC","Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei","Source Han Sans TC",system-ui,-apple-system,"Segoe UI",Arial,sans-serif';
+const FONT_SERIF = '"Songti TC","Noto Serif TC","Noto Serif CJK TC","PMingLiU","MingLiU","Source Han Serif TC",serif';
+const LH = 1.3;
+
+function mkCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w));
+  c.height = Math.max(1, Math.round(h));
+  return c;
+}
+/** 立即釋放 canvas 的點陣記憶體（iOS Safari 不會即時回收） */
+function freeCanvas(c) {
+  if (c) { c.width = 0; c.height = 0; }
+}
+function capScale(w, h) {
+  return w * h > MAX_CANVAS_PX ? Math.sqrt(MAX_CANVAS_PX / (w * h)) : 1;
+}
+function canvasToBlob(c, type = 'image/png', q) {
+  return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('影像編碼失敗（可能超出裝置記憶體上限）')), type, q));
+}
+async function blobBytes(b) { return new Uint8Array(await b.arrayBuffer()); }
+function sniffMime(b) {
+  if (b[0] === 0xFF && b[1] === 0xD8) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'image/png';
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45) return 'image/webp';
+  if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'application/pdf';
+  return '';
+}
+function exifOrientation(b) {
+  if (b[0] !== 0xFF || b[1] !== 0xD8) return 1;
+  let o = 2;
+  while (o < b.length - 10) {
+    if (b[o] !== 0xFF) return 1;
+    const m = b[o + 1], len = (b[o + 2] << 8) | b[o + 3];
+    if (m === 0xE1 && b[o + 4] === 0x45 && b[o + 5] === 0x78 && b[o + 6] === 0x69 && b[o + 7] === 0x66) {
+      const t = o + 10, le = b[t] === 0x49;
+      const r16 = p => le ? b[p] | (b[p + 1] << 8) : (b[p] << 8) | b[p + 1];
+      const r32 = p => (le ? (b[p] | (b[p + 1] << 8) | (b[p + 2] << 16) | (b[p + 3] << 24)) : ((b[p] << 24) | (b[p + 1] << 16) | (b[p + 2] << 8) | b[p + 3])) >>> 0;
+      const ifd = t + r32(t + 4), n = r16(ifd);
+      for (let i = 0; i < n; i++) { const e = ifd + 2 + i * 12; if (r16(e) === 0x0112) return r16(e + 8) || 1; }
+      return 1;
+    }
+    if (m === 0xDA) return 1;
+    o += 2 + len;
+  }
+  return 1;
+}
+/** 以 <img> 解碼（支援 EXIF 方向；Safari 亦可解 HEIC） */
+function decodeImage(blob) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => { img._url = url; res(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('此瀏覽器無法解碼這個圖片格式')); };
+    img.src = url;
+  });
+}
+function releaseImg(img) {
+  if (img && img._url) { URL.revokeObjectURL(img._url); img.src = ''; }
+}
+async function inflate(bytes) {
+  const s = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function deflate(bytes) {
+  const s = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+function hexToRgb01(hex) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
+  return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255];
+}
+/** 可用 PDF 標準字型（WinAnsi）編碼的文字：ASCII 與 Latin-1 */
+const isLatin = t => /^[\x20-\x7E\n\r\t -ÿ]*$/.test(t);
+
+/* ---------------- 函式庫延遲載入 ---------------- */
+const _lib = {};
+function loadScriptOnce(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.onload = res;
+    s.onerror = () => { s.remove(); rej(new Error('load failed: ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+/** 依序嘗試各 CDN，直到 globalName 出現 */
+async function loadScript(path, globalName) {
+  for (const host of CDN_HOSTS) {
+    try {
+      await loadScriptOnce(host + path);
+      if (!globalName || window[globalName]) return;
+    } catch (e) { console.warn(e.message); }
+  }
+  throw new Error('無法載入函式庫，請確認網路連線後重試');
+}
+function lazy(key, fn) {
+  return _lib[key] ||= fn().catch(e => { delete _lib[key]; throw e; });
+}
+const getPdfjs = () => lazy('pdfjs', async () => {
+  let lastErr;
+  for (const host of CDN_HOSTS) {
+    const base = host + PKG.pdfjs;
+    try {
+      const m = await import(base + 'legacy/build/pdf.min.mjs');
+      m.GlobalWorkerOptions.workerSrc = base + 'legacy/build/pdf.worker.min.mjs';
+      PDFJS_BASE = base;
+      return m;
+    } catch (e) { lastErr = e; console.warn('pdf.js 載入失敗，改試下一個 CDN', host, e); }
+  }
+  throw new Error('無法載入 pdf.js，請確認網路連線後重試' + (lastErr ? `（${lastErr.message}）` : ''));
+});
+const getPdfLib = () => lazy('pdflib', async () => {
+  if (!window.PDFLib) await loadScript(PKG.pdflib, 'PDFLib');
+  return window.PDFLib;
+});
+const getJSZip = () => lazy('jszip', async () => {
+  if (!window.JSZip) await loadScript(PKG.jszip, 'JSZip');
+  return window.JSZip;
+});
+const getDiff = () => lazy('diff', async () => {
+  if (!window.Diff) await loadScript(PKG.diff, 'Diff');
+  return window.Diff;
+});
+function pdfjsOpen(pdfjs, bytes, name) {
+  const task = pdfjs.getDocument({
+    data: bytes.slice(), // pdf.js 會轉移 buffer，給它一份複本
+    cMapUrl: PDFJS_BASE + 'cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: PDFJS_BASE + 'standard_fonts/',
+    isEvalSupported: false,
+    enableXfa: false,
+  });
+  task.onPassword = (update, reason) => {
+    const pw = prompt((reason === 2 ? '密碼錯誤，請重新輸入' : `「${name}」受密碼保護，請輸入開啟密碼`) + '：');
+    if (pw === null) task.destroy(); else update(pw);
+  };
+  return task.promise;
+}
+
+/* ---------------- 狀態 ---------------- */
+const SRC_COLORS = ['#e5484d', '#2563eb', '#12a594', '#f76b15', '#8e4ec6', '#d6409f', '#0090ff', '#46a758', '#ad7f58'];
+const S = {
+  sources: new Map(),  // id -> {id,type:'pdf'|'image'|'blank',name,size,bytes,doc,num,pages:[{W,H,vx,vy,rot}],color,hasForm}
+  pages: [],           // {id,src,idx,rot,crop,annots,redacts}
+  sel: new Set(),
+  anchor: null,
+  assets: new Map(),   // id -> {id,bytes,mime,w,h,url,orient}
+  tool: 'organize',
+  layoutVer: 0,
+  sigs: [],            // [{id(assetId)}]
+  pendingAsset: null,
+  wm: { on: false, type: 'text', text: '機密文件', size: 56, color: '#e5484d', bold: true, serif: false, opacity: 0.22, angle: 45, pos: 'mc', asset: null, imgScale: 0.4, scope: 'all' },
+  pn: { on: false, pos: 'bc', fmt: '{n}', custom: '第 {n} 頁', start: 1, size: 11, color: '#333333', margin: 24, skipFirst: false, scope: 'all', bold: false },
+  img: { size: 'a4', orient: 'auto', margin: 10 },
+  cmp: { preset: 'balanced', dpi: 150, q: 0.72, stripMeta: true, deflate: true },
+  rdx: { dpi: 200, regex: false, query: '', scope: 'all' },
+  toimg: { fmt: 'jpg', dpi: 150, q: 0.9, scope: 'all', edits: true },
+  split: { mode: 'selected', ranges: '', every: 2 },
+  remember: true,
+};
+const PERSIST = ['wm', 'pn', 'img', 'cmp', 'toimg'];
+function saveSettings() {
+  try {
+    const o = {};
+    PERSIST.forEach(k => o[k] = S[k]);
+    // 圖片浮水印不跨工作階段保存（圖片本身不會存進瀏覽器）
+    o.wm = { ...S.wm, asset: null, type: S.wm.type === 'image' ? 'text' : S.wm.type };
+    localStorage.setItem('pdfws.settings', JSON.stringify(o));
+  } catch { }
+}
+function loadSettings() {
+  try {
+    const o = JSON.parse(localStorage.getItem('pdfws.settings') || '{}');
+    PERSIST.forEach(k => { if (o[k]) Object.assign(S[k], o[k]); });
+    S.wm.on = false;
+    S.pn.on = false;
+  } catch { }
+}
+const pageById = id => S.pages.find(p => p.id === id);
+const pageIndex = id => S.pages.findIndex(p => p.id === id);
+const selectedPages = () => S.pages.filter(p => S.sel.has(p.id));
+const scopePages = scope => scope === 'selected' && S.sel.size ? selectedPages() : S.pages;
+function newItem(src, idx) { return { id: uid('p'), src, idx, rot: 0, crop: null, annots: [], redacts: [] }; }
+let _colorIdx = 0;
+const nextColor = () => SRC_COLORS[_colorIdx++ % SRC_COLORS.length];
+function baseName() {
+  const s = S.pages.length ? S.sources.get(S.pages[0].src) : null;
+  return s && s.type !== 'blank' ? s.name.replace(/\.[^.]+$/, '') : 'document';
+}
+
+/* ---------------- 幾何：座標系統 ----------------
+   B 空間：PDF 使用者空間，以頁面可視框左下角為原點（y 向上，單位 pt）
+   D_R 空間：頁面依總旋轉 R 顯示時的畫面座標（左上原點、y 向下，單位 pt）
+   P(R)：D_R → B
+   每個標註記錄建立時的 frame（= 當時的 R），因此之後再旋轉頁面，
+   標註會跟著內容一起轉，與一般 PDF 閱讀器的行為一致。              */
+const Mx = {
+  mul: (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3], A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]],
+  inv: m => { const d = m[0] * m[3] - m[1] * m[2]; return [m[3] / d, -m[1] / d, -m[2] / d, m[0] / d, (m[2] * m[5] - m[3] * m[4]) / d, (m[1] * m[4] - m[0] * m[5]) / d]; },
+  ap: (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]],
+};
+function P(R, W, H) {
+  switch (R) {
+    case 90: return [0, 1, 1, 0, 0, 0];
+    case 180: return [-1, 0, 0, 1, W, 0];
+    case 270: return [0, -1, -1, 0, W, H];
+    default: return [1, 0, 0, -1, 0, H];
+  }
+}
+const norm = r => ((r % 360) + 360) % 360;
+function geo(it) {
+  const s = S.sources.get(it.src), g = s.pages[it.idx];
+  const R = norm(g.rot + it.rot), sw = R % 180 === 0;
+  return { ...g, W: g.W, H: g.H, vx: g.vx, vy: g.vy, base: g.rot, R, dw: sw ? g.W : g.H, dh: sw ? g.H : g.W };
+}
+function rectMap(m, x, y, w, h) {
+  const pts = [Mx.ap(m, x, y), Mx.ap(m, x + w, y), Mx.ap(m, x, y + h), Mx.ap(m, x + w, y + h)];
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  return { x: x0, y: y0, w: Math.max(...xs) - x0, h: Math.max(...ys) - y0 };
+}
+const bToD = (r, g) => rectMap(Mx.inv(P(g.R, g.W, g.H)), r.x, r.y, r.w, r.h);
+const dToB = (r, g) => rectMap(P(g.R, g.W, g.H), r.x, r.y, r.w, r.h);
+function cropB(it, g) { const c = it.crop; return c ? { x: c.x0 * g.W, y: c.y0 * g.H, w: (c.x1 - c.x0) * g.W, h: (c.y1 - c.y0) * g.H } : null; }
+/** 裁剪後可視區（D_R 空間） */
+function visibleD(it, g) { const b = cropB(it, g); return b ? bToD(b, g) : { x: 0, y: 0, w: g.dw, h: g.dh }; }
+
+/* ---------------- 復原／重做 ---------------- */
+const HIST_MAX = 30;
+const HIST = { stack: [], idx: -1 };
+/**
+ * 快照只保存「頁面順序 + 每頁的 JSON 字串」。
+ * 沒有變動的頁面會直接沿用上一個快照中的同一個字串（共用參照），
+ * 因此每一步只會為「有變動的頁面」新增記憶體。
+ */
+function commit() {
+  const prev = HIST.stack[HIST.idx];
+  const map = new Map();
+  for (const p of S.pages) {
+    const json = JSON.stringify(p);
+    const old = prev && prev.map.get(p.id);
+    map.set(p.id, old === json ? old : json);
+  }
+  HIST.stack = HIST.stack.slice(0, HIST.idx + 1);
+  HIST.stack.push({ order: S.pages.map(p => p.id), map });
+  if (HIST.stack.length > HIST_MAX) HIST.stack.shift();
+  HIST.idx = HIST.stack.length - 1;
+  updateUndoBtns();
+}
+function restore(snap) {
+  S.pages = snap.order.map(id => JSON.parse(snap.map.get(id)));
+  S.sel = new Set([...S.sel].filter(id => snap.map.has(id)));
+  renderAll();
+  if (ED.open) edRefresh();
+}
+function undo() {
+  if (HIST.idx <= 0) return;
+  HIST.idx--;
+  restore(HIST.stack[HIST.idx]);
+  updateUndoBtns();
+}
+function redo() {
+  if (HIST.idx >= HIST.stack.length - 1) return;
+  HIST.idx++;
+  restore(HIST.stack[HIST.idx]);
+  updateUndoBtns();
+}
+function resetHistory() {
+  HIST.stack = [];
+  HIST.idx = -1;
+  commit();
+}
+/** 資源（圖片、簽名）是否仍被目前頁面或任何復原紀錄使用 */
+function assetInUse(assetId) {
+  if (S.wm.asset === assetId) return true;
+  if (S.pages.some(p => p.annots.some(a => a.asset === assetId))) return true;
+  return HIST.stack.some(h => [...h.map.values()].some(j => j.includes(assetId)));
+}
+/** 釋放資源：撤銷 object URL 並從 S.assets 移除 */
+function releaseAsset(assetId) {
+  const a = S.assets.get(assetId);
+  if (!a) return;
+  if (a.url) URL.revokeObjectURL(a.url);
+  S.assets.delete(assetId);
+}
+function updateUndoBtns() {
+  const u = HIST.idx > 0, r = HIST.idx < HIST.stack.length - 1;
+  ['#btnUndo', '#edUndo'].forEach(s => { const b = $(s); if (b) b.disabled = !u; });
+  ['#btnRedo', '#edRedo'].forEach(s => { const b = $(s); if (b) b.disabled = !r; });
+}
+
+/* ---------------- 進度 / 提示 ---------------- */
+let _busyDepth = 0;
+function busy(msg) {
+  _busyDepth++;
+  $('#busy').classList.add('on'); $('#busyMsg').textContent = msg; $('#busyBar').style.width = '0';
+  return {
+    set(p, m) { if (m) $('#busyMsg').textContent = m; if (p != null) $('#busyBar').style.width = clamp(p * 100, 0, 100) + '%'; },
+    done() { if (--_busyDepth <= 0) { _busyDepth = 0; $('#busy').classList.remove('on'); } },
+  };
+}
+function toast(msg, type = '', ms = 3200) {
+  const t = document.createElement('div'); t.className = 'toast ' + type; t.textContent = msg;
+  $('#toasts').appendChild(t); setTimeout(() => t.remove(), ms);
+}
+function modal({ title, body, ok = '確定', cancel = '取消', wide = false, onOpen, onOk, danger = false }) {
+  return new Promise(resolve => {
+    const back = document.createElement('div'); back.className = 'modal-back';
+    back.innerHTML = `<div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><header>${esc(title)}</header><div class="mb">${body}</div>
+      <footer>${cancel ? `<button class="btn" data-m="cancel">${esc(cancel)}</button>` : ''}${ok ? `<button class="btn ${danger ? 'danger' : 'primary'}" data-m="ok">${esc(ok)}</button>` : ''}</footer></div>`;
+    document.body.appendChild(back);
+    const root = back.querySelector('.modal');
+    const close = v => { back.remove(); document.removeEventListener('keydown', key, true); resolve(v); };
+    const key = e => { if (e.key === 'Escape') { e.stopPropagation(); close(null); } };
+    document.addEventListener('keydown', key, true);
+    back.addEventListener('click', async e => {
+      const m = e.target.closest('[data-m]')?.dataset.m;
+      if (e.target === back || m === 'cancel') close(null);
+      else if (m === 'ok') { const v = onOk ? await onOk(root) : root; if (v !== false) close(v); }
+    });
+    onOpen && onOpen(root, close);
+    setTimeout(() => root.querySelector('input:not([type=hidden]),textarea')?.focus(), 50);
+  });
+}
+
+/* ---------------- 載入檔案 ---------------- */
+async function addFiles(files) {
+  files = [...files]; if (!files.length) return;
+  const pr = busy('讀取檔案中…'); let added = 0;
+  try {
+    await getPdfjs().catch(e => { if (files.some(f => /pdf/i.test(f.type) || /\.pdf$/i.test(f.name))) throw e; });
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      pr.set(i / files.length, `讀取 ${f.name}`);
+      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+      const isImg = /^image\//.test(f.type) || /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(f.name);
+      try {
+        if (isPdf) added += await addPdf(f, p => pr.set((i + p) / files.length));
+        else if (isImg) added += await addImage(f);
+        else toast(`不支援的檔案格式：${f.name}`, 'warn');
+      } catch (e) { console.error(e); toast(`無法開啟「${f.name}」：${e.message || e}`, 'err', 5000); }
+    }
+  } catch (e) { toast(e.message || String(e), 'err', 5000); }
+  finally { pr.done(); }
+  if (added) { commit(); renderAll(); toast(`已加入 ${added} 頁`); }
+}
+async function addPdf(file, onProg) {
+  const pdfjs = await getPdfjs();
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const doc = await pdfjsOpen(pdfjs, bytes, file.name);
+  const src = { id: uid('s'), type: 'pdf', name: file.name, size: file.size, bytes, doc, num: doc.numPages, pages: [], color: nextColor(), hasForm: false };
+  for (let i = 1; i <= doc.numPages; i++) {
+    const p = await doc.getPage(i); const v = p.view;
+    src.pages.push({ W: v[2] - v[0], H: v[3] - v[1], vx: v[0], vy: v[1], rot: norm(p.rotate) });
+    if (i % 25 === 0) { onProg && onProg(i / doc.numPages); await tick(); }
+  }
+  try { const f = await doc.getFieldObjects(); src.hasForm = !!(f && Object.keys(f).length); } catch { }
+  S.sources.set(src.id, src);
+  for (let i = 0; i < doc.numPages; i++) S.pages.push(newItem(src.id, i));
+  return doc.numPages;
+}
+async function makeAsset(blob, extra = {}) {
+  const bytes = await blobBytes(blob);
+  const mime = sniffMime(bytes) || blob.type || 'image/png';
+  const img = await decodeImage(new Blob([bytes], { type: mime }));
+  const w = img.naturalWidth, h = img.naturalHeight;
+  // 預覽用縮小版（降低 iPad 記憶體壓力）
+  const k = Math.min(1, 1600 / Math.max(w, h));
+  const c = mkCanvas(w * k, h * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); releaseImg(img);
+  const alpha = /png|gif|webp/.test(mime);
+  const preview = await canvasToBlob(c, alpha ? 'image/png' : 'image/jpeg', 0.85); freeCanvas(c);
+  const a = { id: extra.id || uid('a'), bytes, mime, w, h, preview, url: URL.createObjectURL(preview), orient: mime === 'image/jpeg' ? exifOrientation(bytes) : 1, alpha, ...extra };
+  S.assets.set(a.id, a); return a;
+}
+async function addImage(file) {
+  const a = await makeAsset(file);
+  const src = { id: uid('s'), type: 'image', name: file.name, size: file.size, asset: a.id, color: nextColor(), num: 1, pages: [imageGeom(a.w, a.h)] };
+  S.sources.set(src.id, src); S.pages.push(newItem(src.id, 0)); return 1;
+}
+function imageGeom(w, h) {
+  const c = S.img, m = c.margin * MM; let W, H;
+  if (c.size === 'fit') { const k = 842 / Math.max(w, h); W = w * k + 2 * m; H = h * k + 2 * m; }
+  else {
+    const sz = { a4: [595.28, 841.89], letter: [612, 792], a5: [419.53, 595.28] }[c.size] || [595.28, 841.89];
+    const land = c.orient === 'landscape' || (c.orient === 'auto' && w > h);
+    [W, H] = land ? [sz[1], sz[0]] : sz;
+  }
+  const k = Math.min((W - 2 * m) / w, (H - 2 * m) / h), dw = w * k, dh = h * k;
+  return { W, H, vx: 0, vy: 0, rot: 0, ix: (W - dw) / 2, iy: (H - dh) / 2, iw: dw, ih: dh, img: true };
+}
+function relayoutImages() {
+  S.layoutVer++;
+  S.sources.forEach(s => { if (s.type === 'image') { const a = S.assets.get(s.asset); s.pages[0] = imageGeom(a.w, a.h); } });
+  renderGrid();
+}
+function ensureBlankSrc() {
+  let s = S.sources.get('blank');
+  if (!s) { s = { id: 'blank', type: 'blank', name: '空白頁', size: 0, num: 1, color: '#9aa3b5', pages: [{ W: 595.28, H: 841.89, vx: 0, vy: 0, rot: 0 }] }; S.sources.set('blank', s); }
+  return s;
+}
+function removeSource(id) {
+  const s = S.sources.get(id);
+  if (!s) return;
+  S.pages = S.pages.filter(p => p.src !== id);
+  S.sel = new Set([...S.sel].filter(pid => pageById(pid)));
+  if (s.doc) s.doc.destroy();
+  s.bytes = null;
+  S.sources.delete(id);
+  thumbCache.deleteWhere(k => k.startsWith(id + '|'));
+  resetHistory(); // 先清掉復原紀錄，資源才不會再被引用
+  if (s.asset && !assetInUse(s.asset)) releaseAsset(s.asset);
+  if (typeof PV !== 'undefined') PV.key = null;
+  renderAll();
+}
+
+/* ---------------- 頁面渲染 ---------------- */
+/** 以總旋轉 R 渲染頁面（R=0 代表 PDF 使用者空間原始方向），回傳新 canvas */
+async function renderItem(it, scale, R = geo(it).R, opts = {}) {
+  const s = S.sources.get(it.src), g = s.pages[it.idx];
+  if (s.type === 'pdf') {
+    const page = await s.doc.getPage(it.idx + 1);
+    let vp = page.getViewport({ scale, rotation: R });
+    const k = capScale(vp.width, vp.height);
+    if (k < 1) vp = page.getViewport({ scale: scale * k, rotation: R });
+    const c = mkCanvas(Math.ceil(vp.width), Math.ceil(vp.height));
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    const task = page.render({ canvasContext: ctx, viewport: vp, intent: opts.print ? 'print' : 'display' });
+    if (opts.onTask) opts.onTask(task);
+    await task.promise;
+    return c;
+  }
+  const sw = R % 180 === 0, dw = sw ? g.W : g.H, dh = sw ? g.H : g.W;
+  let k = scale * capScale(dw * scale, dh * scale);
+  const c = mkCanvas(dw * k, dh * k), ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  if (s.type === 'image') {
+    const a = S.assets.get(s.asset);
+    const big = k * g.iw > 1500 && opts.full;
+    const img = await decodeImage(big ? new Blob([a.bytes], { type: a.mime }) : a.preview);
+    ctx.translate(c.width / 2, c.height / 2); ctx.rotate(R * Math.PI / 180); ctx.scale(k, k); ctx.translate(-g.W / 2, -g.H / 2);
+    ctx.drawImage(img, g.ix, g.H - g.iy - g.ih, g.iw, g.ih); releaseImg(img);
+  }
+  return c;
+}
+
+/* ---------------- 縮圖（延遲渲染 + 佇列 + LRU 快取） ---------------- */
+const THUMB_MAX = 80;
+/** 上限 80 張的 LRU 快取；淘汰時會 revoke object URL。正在畫面上顯示的縮圖不會被淘汰 */
+const thumbCache = {
+  m: new Map(),
+  has(k) { return this.m.has(k); },
+  get(k) {
+    const v = this.m.get(k);
+    if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } // 移到最新
+    return v;
+  },
+  set(k, v) {
+    this.delete(k);
+    this.m.set(k, v);
+    this.evict();
+  },
+  delete(k) {
+    const v = this.m.get(k);
+    if (v === undefined) return;
+    URL.revokeObjectURL(v);
+    this.m.delete(k);
+  },
+  deleteWhere(fn) {
+    for (const k of [...this.m.keys()]) if (fn(k)) this.delete(k);
+  },
+  evict() {
+    if (this.m.size <= THUMB_MAX) return;
+    const inUse = new Set($$('.card').filter(el => el._vis).map(el => el._key));
+    for (const k of [...this.m.keys()]) { // Map 依插入順序，最前面就是最久未使用
+      if (this.m.size <= THUMB_MAX) break;
+      if (!inUse.has(k)) this.delete(k);
+    }
+  },
+  get size() { return this.m.size; },
+};
+const thumbQ = [];
+let thumbRunning = 0;
+function thumbKey(it) {
+  const g = geo(it), s = S.sources.get(it.src);
+  return `${it.src}|${it.idx}|${g.R}|${s.type === 'image' ? S.layoutVer : 0}`;
+}
+function showThumb(el, url) {
+  const img = el.querySelector('img');
+  if (img.getAttribute('src') !== url) img.src = url;
+  el.querySelector('.ph').hidden = true;
+}
+function requestThumb(el) {
+  const it = pageById(el.dataset.id);
+  if (!it) return;
+  const key = thumbKey(it);
+  el._key = key;
+  const url = thumbCache.get(key);
+  if (url) return showThumb(el, url);
+  if (!thumbQ.some(q => q.key === key)) thumbQ.push({ key, it });
+  pumpThumbs();
+}
+function pumpThumbs() {
+  // 先丟掉已離開可視區（含預載邊界）的任務；它們重新進入畫面時會再排入
+  const visible = new Set($$('.card').filter(el => el._vis).map(el => el._key));
+  for (let i = thumbQ.length - 1; i >= 0; i--) if (!visible.has(thumbQ[i].key)) thumbQ.splice(i, 1);
+  while (thumbRunning < 2 && thumbQ.length) {
+    const job = thumbQ.shift();
+    if (thumbCache.has(job.key)) { applyThumb(job.key); continue; }
+    thumbRunning++;
+    (async () => {
+      try {
+        const g = geo(job.it);
+        const c = await renderItem(job.it, 240 * DPR() / g.dw, g.R);
+        const b = await canvasToBlob(c, 'image/jpeg', 0.82);
+        freeCanvas(c);
+        thumbCache.set(job.key, URL.createObjectURL(b));
+        applyThumb(job.key);
+      } catch (e) { console.warn('thumb', e); }
+      finally { thumbRunning--; pumpThumbs(); }
+    })();
+  }
+}
+function applyThumb(key) {
+  const url = thumbCache.get(key);
+  if (!url) return;
+  $$('.card').forEach(el => { if (el._key === key && el._vis) showThumb(el, url); });
+}
+const thumbIO = 'IntersectionObserver' in window ? new IntersectionObserver(ents => {
+  for (const e of ents) {
+    const el = e.target;
+    el._vis = e.isIntersecting;
+    if (e.isIntersecting) { requestThumb(el); continue; }
+    // 離開畫面：移除 src，讓瀏覽器釋放已解碼的點陣圖
+    const img = el.querySelector('img');
+    if (img.getAttribute('src')) { img.removeAttribute('src'); el.querySelector('.ph').hidden = false; }
+  }
+}, { root: null, rootMargin: '600px 0px' }) : null;
+
+/* ---------------- 標註轉 SVG（編輯器與縮圖共用） ---------------- */
+function measureText(text, a) {
+  const c = measureText._c ||= mkCanvas(4, 4), x = c.getContext('2d');
+  x.font = fontCss(a, a.size);
+  const lines = String(text).split('\n'), pad = a.bg ? a.size * 0.3 : a.size * 0.12;
+  const w = Math.max(a.size * 0.6, ...lines.map(l => x.measureText(l).width));
+  return { w: w + pad * 2, h: lines.length * a.size * LH + pad * 2, lines, pad };
+}
+function fontCss(a, size) { return `${a.bold ? '700' : '400'} ${size}px ${a.serif ? FONT_SERIF : FONT_SANS}`; }
+function inkPath(pts) {
+  if (!pts.length) return '';
+  const f = n => +n.toFixed(2);
+  if (pts.length < 3) return `M${f(pts[0][0])} ${f(pts[0][1])}` + pts.slice(1).map(p => `L${f(p[0])} ${f(p[1])}`).join('') + (pts.length === 1 ? `l0.01 0` : '');
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+    d += `Q${f(pts[i][0])} ${f(pts[i][1])} ${f(mx)} ${f(my)}`;
+  }
+  const l = pts[pts.length - 1]; return d + `L${f(l[0])} ${f(l[1])}`;
+}
+function arrowHead(a) {
+  const ang = Math.atan2(a.y2 - a.y1, a.x2 - a.x1), L = Math.max(8, a.width * 3.5), sp = 0.45;
+  const p1 = [a.x2 - L * Math.cos(ang - sp), a.y2 - L * Math.sin(ang - sp)];
+  const p2 = [a.x2 - L * Math.cos(ang + sp), a.y2 - L * Math.sin(ang + sp)];
+  return { d: `M${a.x2} ${a.y2}L${p1[0]} ${p1[1]}L${p2[0]} ${p2[1]}Z`, base: [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2] };
+}
+/** 單一標註在其 frame 座標系中的 SVG（編輯器與縮圖共用） */
+function annotInner(a) {
+  const op = a.opacity ?? 1;
+  const fillAttrs = `fill="${a.fill ? a.color : 'none'}" fill-opacity="${op}" stroke="${a.fill ? 'none' : a.color}" stroke-width="${a.width}" stroke-opacity="${op}"`;
+  const strokeAttrs = `stroke="${a.color}" stroke-width="${a.width}" stroke-linecap="round" stroke-opacity="${op}"`;
+  switch (a.type) {
+    case 'rect':
+      return `<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" ${fillAttrs}/>`;
+    case 'ellipse':
+      return `<ellipse cx="${a.x + a.w / 2}" cy="${a.y + a.h / 2}" rx="${a.w / 2}" ry="${a.h / 2}" ${fillAttrs}/>`;
+    case 'line':
+      return `<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" ${strokeAttrs}/>`;
+    case 'arrow': {
+      const h = arrowHead(a);
+      return `<line x1="${a.x1}" y1="${a.y1}" x2="${h.base[0]}" y2="${h.base[1]}" ${strokeAttrs}/>`
+        + `<path d="${h.d}" fill="${a.color}" fill-opacity="${op}"/>`;
+    }
+    case 'ink':
+      return `<path d="${inkPath(a.pts)}" fill="none" stroke="${a.color}" stroke-width="${a.width}"`
+        + ` stroke-linecap="${a.hl ? 'butt' : 'round'}" stroke-linejoin="round" stroke-opacity="${a.hl ? 0.4 : op}"`
+        + `${a.hl ? ' style="mix-blend-mode:multiply"' : ''}/>`;
+    case 'text': {
+      const m = measureText(a.text, a), lh = a.size * LH, k = a.w / m.w;
+      const bg = a.bg ? `<rect width="${m.w}" height="${m.h}" fill="#fff"/>` : '';
+      const spans = m.lines.map((l, i) => `<tspan x="${m.pad}" y="${m.pad + lh * (i + 0.5)}">${esc(l) || ' '}</tspan>`).join('');
+      return `<g transform="translate(${a.x} ${a.y}) scale(${k})">${bg}`
+        + `<text font-family='${a.serif ? FONT_SERIF : FONT_SANS}' font-size="${a.size}" font-weight="${a.bold ? 700 : 400}" fill="${a.color}"`
+        + ` dominant-baseline="central" xml:space="preserve" style="white-space:pre">${spans}</text></g>`;
+    }
+    case 'image': {
+      const as = S.assets.get(a.asset);
+      if (!as) return '';
+      return `<image href="${as.url}" x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" preserveAspectRatio="none" opacity="${op}"/>`;
+    }
+  }
+  return '';
+}
+function annotBBoxFrame(a) {
+  switch (a.type) {
+    case 'line':
+    case 'arrow': {
+      const x = Math.min(a.x1, a.x2), y = Math.min(a.y1, a.y2);
+      return { x, y, w: Math.abs(a.x2 - a.x1), h: Math.abs(a.y2 - a.y1) };
+    }
+    case 'ink': {
+      const xs = a.pts.map(p => p[0]), ys = a.pts.map(p => p[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    }
+    default:
+      return { x: a.x, y: a.y, w: a.w, h: a.h };
+  }
+}
+const frameToD = (a, g) => Mx.mul(Mx.inv(P(g.R, g.W, g.H)), P(a.frame, g.W, g.H));
+function overlayContent(it, g, o = {}) {
+  let s = '';
+  const z = o.zoom || 1;
+  for (const r of it.redacts) {
+    const d = bToD(r, g);
+    s += `<rect x="${d.x}" y="${d.y}" width="${d.w}" height="${d.h}" fill="#000" ${o.interactive ? `fill-opacity=".85" stroke="#ff4d4f" stroke-width="${1.5 / z}" stroke-dasharray="${4 / z} ${3 / z}"` : ''}/>`;
+  }
+  for (const a of it.annots) {
+    const T = frameToD(a, g);
+    s += `<g data-aid="${a.id}" transform="matrix(${T.map(v => +v.toFixed(5)).join(' ')})">${annotInner(a)}</g>`;
+  }
+  if (it.crop) {
+    const c = visibleD(it, g);
+    s += `<path fill="rgba(14,16,20,${o.interactive ? .55 : .5})" fill-rule="evenodd" d="M0 0H${g.dw}V${g.dh}H0Z M${c.x} ${c.y}h${c.w}v${c.h}h${-c.w}Z"/>`;
+    if (o.interactive) s += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" fill="none" stroke="#fff" stroke-width="${1.5 / z}" stroke-dasharray="${5 / z} ${4 / z}"/>`;
+  }
+  return s;
+}
+
+/* ---------------- 工作台格狀檢視 ---------------- */
+function makeCard(it) {
+  const el = document.createElement('div'); el.className = 'card'; el.dataset.id = it.id;
+  el.innerHTML = `<div class="thumb"><div class="ph">載入中…</div><img alt="" draggable="false"><svg class="ov" preserveAspectRatio="none"></svg>
+    <div class="check">${ICON('check')}</div>
+    <div class="card-acts"><button data-act="rotr" title="向右旋轉">${ICON('rotr')}</button><button data-act="edit" title="編輯">${ICON('edit')}</button><button data-act="del" title="刪除">${ICON('trash')}</button></div></div>
+    <div class="cap"><span class="num"></span><span class="dot"></span><span class="fn"></span><span class="bd"></span></div>`;
+  thumbIO ? thumbIO.observe(el) : (el._vis = true);
+  return el;
+}
+function updateCard(el, it, i) {
+  const g = geo(it), s = S.sources.get(it.src);
+  el.classList.toggle('sel', S.sel.has(it.id));
+  el.querySelector('.thumb').style.aspectRatio = `${g.dw} / ${g.dh}`;
+  el.querySelector('.num').textContent = i + 1;
+  el.querySelector('.dot').style.background = s.color;
+  el.querySelector('.fn').textContent = s.type === 'pdf' ? `${s.name.replace(/\.pdf$/i, '')} · p${it.idx + 1}` : s.name;
+  el.querySelector('.fn').title = s.name;
+  const bd = [];
+  if (it.annots.length) bd.push('標註');
+  if (it.redacts.length) bd.push('密文');
+  if (it.crop) bd.push('裁剪');
+  el.querySelector('.bd').innerHTML = bd.map(b => `<span>${b}</span>`).join('');
+  const ov = el.querySelector('svg.ov');
+  const sig = JSON.stringify([it.annots, it.redacts, it.crop, g.R]);
+  if (ov._sig !== sig) { ov._sig = sig; ov.setAttribute('viewBox', `0 0 ${g.dw} ${g.dh}`); ov.innerHTML = overlayContent(it, g); }
+  const key = thumbKey(it);
+  if (el._key !== key) { el._key = key; el.querySelector('img').removeAttribute('src'); el.querySelector('.ph').hidden = false; if (el._vis) requestThumb(el); }
+}
+function renderGrid() {
+  const grid = $('#grid'), has = S.pages.length > 0;
+  $('#empty').hidden = has; $('#wsBar').hidden = !has; grid.hidden = !has;
+  $('#btnExport').disabled = !has;
+  const existing = new Map($$('.card', grid).map(el => [el.dataset.id, el]));
+  const frag = document.createDocumentFragment();
+  S.pages.forEach((it, i) => {
+    let el = existing.get(it.id);
+    if (el) existing.delete(it.id); else el = makeCard(it);
+    updateCard(el, it, i); frag.appendChild(el);
+  });
+  existing.forEach(el => { thumbIO && thumbIO.unobserve(el); el.remove(); });
+  grid.appendChild(frag);
+  updateWsInfo();
+}
+function updateWsInfo() {
+  $('#wsInfo').innerHTML = `共 <b>${S.pages.length}</b> 頁${S.sel.size ? ` · 已選 <b>${S.sel.size}</b> 頁` : ''}`;
+  $$('#wsBar [data-ws=rotl],#wsBar [data-ws=rotr],#wsBar [data-ws=del]').forEach(b => b.disabled = !S.sel.size);
+}
+function refreshSelection() { $$('.card').forEach(el => el.classList.toggle('sel', S.sel.has(el.dataset.id))); updateWsInfo(); onSelectionChange(); }
+function renderAll() { renderGrid(); renderPanel(); }
+
+/* ---------------- 頁面操作 ---------------- */
+function rotatePages(list, d) { list.forEach(p => p.rot = norm(p.rot + d)); commit(); renderGrid(); }
+function deletePages(list) {
+  if (!list.length) return;
+  const ids = new Set(list.map(p => p.id));
+  S.pages = S.pages.filter(p => !ids.has(p.id)); ids.forEach(i => S.sel.delete(i));
+  commit(); renderAll(); toast(`已刪除 ${ids.size} 頁（可按復原）`);
+}
+function duplicatePages(list) {
+  list.forEach(p => { const c = JSON.parse(JSON.stringify(p)); c.id = uid('p'); c.annots.forEach(a => a.id = uid('a')); S.pages.splice(pageIndex(p.id) + 1, 0, c); });
+  commit(); renderAll();
+}
+function movePages(list, where) {
+  const ids = new Set(list.map(p => p.id)), rest = S.pages.filter(p => !ids.has(p.id));
+  S.pages = where === 'start' ? [...list, ...rest] : [...rest, ...list];
+  commit(); renderGrid();
+}
+function insertBlank() {
+  ensureBlankSrc();
+  const sel = selectedPages(), at = sel.length ? pageIndex(sel[sel.length - 1].id) + 1 : S.pages.length;
+  S.pages.splice(at, 0, newItem('blank', 0)); commit(); renderAll();
+}
+
+/* ---------------- 格狀檢視互動：點選、拖曳排序（滑鼠 + 觸控長按） ---------------- */
+let DRAG = null;
+function initGridInteractions() {
+  const grid = $('#grid'), ws = $('#workspace');
+  grid.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.card');
+    if (!card || e.target.closest('.card-acts') || e.button > 0) return;
+    if (e.pointerType === 'mouse') e.preventDefault();
+    const st = {
+      card, id: card.dataset.id, x: e.clientX, y: e.clientY, pid: e.pointerId, type: e.pointerType,
+      active: false, moved: false, shift: e.shiftKey, meta: e.metaKey || e.ctrlKey,
+    };
+    DRAG = st;
+    // 觸控／觸控筆：長按 380ms 才進入拖曳，避免與捲動衝突
+    if (e.pointerType !== 'mouse') {
+      st.timer = setTimeout(() => {
+        if (DRAG === st && !st.moved) { startDrag(st, st.x, st.y); navigator.vibrate?.(12); }
+      }, 380);
+    }
+  });
+  window.addEventListener('pointermove', e => {
+    if (!DRAG || e.pointerId !== DRAG.pid) return;
+    if (!DRAG.active) {
+      if (Math.hypot(e.clientX - DRAG.x, e.clientY - DRAG.y) > 8) {
+        DRAG.moved = true;
+        if (DRAG.type === 'mouse') startDrag(DRAG, e.clientX, e.clientY);
+        else { clearTimeout(DRAG.timer); DRAG = null; }
+      }
+      return;
+    }
+    DRAG.lx = e.clientX; DRAG.ly = e.clientY; moveDrag();
+  });
+  const end = e => {
+    if (!DRAG || e.pointerId !== DRAG.pid) return;
+    const d = DRAG; DRAG = null; clearTimeout(d.timer);
+    if (d.active) endDrag(d, e.type === 'pointercancel');
+    else if (!d.moved && e.type === 'pointerup') tapCard(d);
+  };
+  window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+  grid.addEventListener('touchmove', e => { if (DRAG && DRAG.active) e.preventDefault(); }, { passive: false });
+  grid.addEventListener('contextmenu', e => { if (e.target.closest('.card')) e.preventDefault(); });
+  grid.addEventListener('dblclick', e => { const c = e.target.closest('.card'); if (c && !e.target.closest('.card-acts')) openEditor(c.dataset.id); });
+  grid.addEventListener('click', e => {
+    const b = e.target.closest('.card-acts button'); if (!b) return;
+    const it = pageById(b.closest('.card').dataset.id); if (!it) return;
+    if (b.dataset.act === 'rotr') rotatePages([it], 90);
+    else if (b.dataset.act === 'edit') openEditor(it.id);
+    else if (b.dataset.act === 'del') deletePages([it]);
+  });
+  function startDrag(st, x, y) {
+    st.active = true; st.lx = x; st.ly = y;
+    st.ids = S.sel.has(st.id) ? S.pages.filter(p => S.sel.has(p.id)).map(p => p.id) : [st.id];
+    st.ids.forEach(id => $(`.card[data-id="${id}"]`)?.classList.add('dragging'));
+    const g = document.createElement('div'); g.className = 'drag-ghost';
+    const src = st.card.querySelector('img').getAttribute('src');
+    g.innerHTML = (src ? `<img src="${src}">` : `<div style="height:110px"></div>`) + (st.ids.length > 1 ? `<b>${st.ids.length}</b>` : '');
+    document.body.appendChild(g); st.ghost = g;
+    st.ind = document.createElement('div'); st.ind.className = 'drop-ind'; st.ind.hidden = true; document.body.appendChild(st.ind);
+    const loop = () => { if (!st.active) return; autoScroll(st); st.raf = requestAnimationFrame(loop); };
+    st.raf = requestAnimationFrame(loop);
+    moveDrag();
+  }
+  function autoScroll(st) {
+    const r = ws.getBoundingClientRect(), edge = 70;
+    if (st.ly < r.top + edge) ws.scrollTop -= (r.top + edge - st.ly) / 4;
+    else if (st.ly > r.bottom - edge) ws.scrollTop += (st.ly - (r.bottom - edge)) / 4;
+  }
+  function moveDrag() {
+    const st = DRAG; if (!st || !st.active) return;
+    st.ghost.style.left = st.lx - 45 + 'px'; st.ghost.style.top = st.ly - 50 + 'px';
+    const el = document.elementFromPoint(st.lx, st.ly)?.closest('.card');
+    if (!el) { st.target = null; st.ind.hidden = true; return; }
+    const r = el.getBoundingClientRect(), before = st.lx < r.left + r.width / 2;
+    st.target = { id: el.dataset.id, before };
+    Object.assign(st.ind.style, { left: (before ? r.left - 11 : r.right + 7) + 'px', top: r.top + 'px', height: r.height + 'px' });
+    st.ind.hidden = false;
+  }
+  function endDrag(st, cancel) {
+    st.active = false; cancelAnimationFrame(st.raf);
+    st.ghost.remove(); st.ind.remove();
+    $$('.card.dragging').forEach(c => c.classList.remove('dragging'));
+    if (cancel || !st.target || st.ids.includes(st.target.id)) return;
+    const ids = new Set(st.ids), moving = S.pages.filter(p => ids.has(p.id)), rest = S.pages.filter(p => !ids.has(p.id));
+    let at = rest.findIndex(p => p.id === st.target.id); if (!st.target.before) at++;
+    rest.splice(at, 0, ...moving); S.pages = rest; commit(); renderGrid();
+  }
+  function tapCard(d) {
+    const ids = S.pages.map(p => p.id);
+    if (d.shift && S.anchor && ids.includes(S.anchor)) {
+      const [a, b] = [ids.indexOf(S.anchor), ids.indexOf(d.id)].sort((x, y) => x - y);
+      ids.slice(a, b + 1).forEach(i => S.sel.add(i));
+    } else if (S.sel.has(d.id)) S.sel.delete(d.id); else S.sel.add(d.id);
+    S.anchor = d.id; refreshSelection();
+  }
+}
+
+/* =====================================================================
+   PDF 產生管線：工作台 → 新 PDF
+   - 一般頁：copyPages（保留原始文字層、字型、向量）
+   - 含密文的頁：以 pdf.js 重新點陣化並塗黑，原內容完全不寫入輸出檔
+   - 圖片頁：JPG 原檔直接內嵌（不重新壓縮）
+   ===================================================================== */
+async function getLibDoc(src, cache) {
+  if (cache.has(src.id)) return cache.get(src.id);
+  const { PDFDocument } = await getPdfLib();
+  let d = null;
+  try {
+    d = await PDFDocument.load(src.bytes, { ignoreEncryption: true, updateMetadata: false, throwOnInvalidObject: false });
+    if (d.isEncrypted) d = null;
+  } catch (e) { console.warn(e); d = null; }
+  if (!d && !src._warned) { src._warned = true; toast(`「${src.name}」為加密或結構特殊的檔案，該檔頁面將以高解析影像輸出`, 'warn', 6000); }
+  cache.set(src.id, d); return d;
+}
+async function textPng(text, a, m, k = 4) {
+  k = Math.min(k, Math.sqrt(MAX_CANVAS_PX / Math.max(1, m.w * m.h)));
+  const c = mkCanvas(m.w * k, m.h * k), x = c.getContext('2d');
+  x.scale(c.width / m.w, c.height / m.h);
+  if (a.bg) { x.fillStyle = '#fff'; x.fillRect(0, 0, m.w, m.h); }
+  x.font = fontCss(a, a.size); x.fillStyle = a.color; x.textBaseline = 'middle';
+  const lh = a.size * LH; m.lines.forEach((l, i) => x.fillText(l, m.pad, m.pad + lh * (i + 0.5)));
+  const b = await canvasToBlob(c, 'image/png'); freeCanvas(c); return blobBytes(b);
+}
+async function embedAsset(ctx, id) {
+  if (ctx.imgCache.has(id)) return ctx.imgCache.get(id);
+  const a = S.assets.get(id); let img = null;
+  try {
+    if (a.mime === 'image/jpeg' && (a.orient || 1) === 1) img = await ctx.out.embedJpg(a.bytes);
+    else if (a.mime === 'image/png') img = await ctx.out.embedPng(a.bytes);
+  } catch (e) { console.warn('direct embed failed', e); img = null; }
+  if (!img) {
+    const el = await decodeImage(new Blob([a.bytes], { type: a.mime }));
+    const k = capScale(el.naturalWidth, el.naturalHeight);
+    const c = mkCanvas(el.naturalWidth * k, el.naturalHeight * k); c.getContext('2d').drawImage(el, 0, 0, c.width, c.height); releaseImg(el);
+    const b = await blobBytes(await canvasToBlob(c, a.alpha ? 'image/png' : 'image/jpeg', 0.92)); freeCanvas(c);
+    img = a.alpha ? await ctx.out.embedPng(b) : await ctx.out.embedJpg(b);
+  }
+  ctx.imgCache.set(id, img); return img;
+}
+function withCTM(ctx, page, m, fn) {
+  const L = ctx.L;
+  page.pushOperators(L.pushGraphicsState(), L.concatTransformationMatrix(...m));
+  return Promise.resolve(fn()).finally(() => page.pushOperators(L.popGraphicsState()));
+}
+/** S 空間（R 方向顯示時的左下原點、y 向上）→ 使用者空間 */
+function ctmFor(R, g) {
+  const dh = R % 180 ? g.W : g.H;
+  return Mx.mul(Mx.mul([1, 0, 0, 1, g.vx, g.vy], P(R, g.W, g.H)), [1, 0, 0, -1, 0, dh]);
+}
+async function drawAnnot(ctx, page, a, g) {
+  const L = ctx.L, dh = a.frame % 180 ? g.W : g.H, op = a.opacity ?? 1;
+  const col = c => L.rgb(...hexToRgb01(c));
+  // 填滿或外框（矩形／橢圓）、線條（直線／箭頭）共用的繪製參數；圖片與文字沒有 color，需延後計算
+  const paint = () => a.fill
+    ? { color: col(a.color), opacity: op }
+    : { borderColor: col(a.color), borderWidth: a.width, borderOpacity: op };
+  const line = () => ({ thickness: a.width, color: col(a.color), opacity: op, lineCap: L.LineCapStyle.Round });
+  await withCTM(ctx, page, ctmFor(a.frame, g), async () => {
+    switch (a.type) {
+      case 'rect':
+        page.drawRectangle({ x: a.x, y: dh - a.y - a.h, width: a.w, height: a.h, ...paint() });
+        break;
+      case 'ellipse':
+        page.drawEllipse({ x: a.x + a.w / 2, y: dh - a.y - a.h / 2, xScale: a.w / 2, yScale: a.h / 2, ...paint() });
+        break;
+      case 'line':
+        page.drawLine({ start: { x: a.x1, y: dh - a.y1 }, end: { x: a.x2, y: dh - a.y2 }, ...line() });
+        break;
+      case 'arrow': {
+        const h = arrowHead(a);
+        page.drawLine({ start: { x: a.x1, y: dh - a.y1 }, end: { x: h.base[0], y: dh - h.base[1] }, ...line() });
+        page.drawSvgPath(h.d, { x: 0, y: dh, color: col(a.color), opacity: op });
+        break;
+      }
+      case 'ink': {
+        const o = {
+          x: 0, y: dh,
+          borderColor: col(a.color), borderWidth: a.width, borderOpacity: a.hl ? 0.4 : op,
+          borderLineCap: a.hl ? L.LineCapStyle.Butt : L.LineCapStyle.Round,
+        };
+        if (a.hl && L.BlendMode) o.blendMode = L.BlendMode.Multiply;
+        page.drawSvgPath(inkPath(a.pts), o);
+        break;
+      }
+      case 'text': {
+        // 文字框被放大時（a.w > m.w），依實際縮放比例提高點陣倍率，避免匯出後模糊；
+        // textPng 內部會再以 MAX_CANVAS_PX 保護上限。
+        const m = measureText(a.text, a);
+        const scale = 4 * Math.max(1, a.w / m.w);
+        const png = await textPng(a.text, a, m, scale);
+        const img = await ctx.out.embedPng(png);
+        page.drawImage(img, { x: a.x, y: dh - a.y - a.h, width: a.w, height: a.h, opacity: op });
+        break;
+      }
+      case 'image': {
+        const img = await embedAsset(ctx, a.asset);
+        page.drawImage(img, { x: a.x, y: dh - a.y - a.h, width: a.w, height: a.h, opacity: op }); break;
+      }
+    }
+  });
+}
+function wmPlacements(r, w, h, cfg) {
+  const th = cfg.angle * Math.PI / 180, cs = Math.abs(Math.cos(th)), sn = Math.abs(Math.sin(th));
+  const bw = w * cs + h * sn, bh = w * sn + h * cs, m = 28;
+  if (cfg.pos === 'tile') {
+    const gx = bw + Math.max(36, w * 0.25), gy = bh + Math.max(48, h * 2), out = [];
+    let row = 0;
+    for (let y = r.y + gy / 2; y < r.y + r.h + gy / 2; y += gy, row++)
+      for (let x = r.x + (row % 2 ? gx / 2 : 0); x < r.x + r.w + gx / 2; x += gx) out.push([x, y]);
+    return out;
+  }
+  const rc = cfg.pos[0], cc = cfg.pos[1];
+  const cx = cc === 'l' ? r.x + m + bw / 2 : cc === 'r' ? r.x + r.w - m - bw / 2 : r.x + r.w / 2;
+  const cy = rc === 't' ? r.y + r.h - m - bh / 2 : rc === 'b' ? r.y + m + bh / 2 : r.y + r.h / 2;
+  return [[cx, cy]];
+}
+async function wmAsset(ctx, cfg) {
+  if (ctx.wm) return ctx.wm;
+  if (cfg.type === 'image' && cfg.asset && S.assets.has(cfg.asset)) {
+    const a = S.assets.get(cfg.asset); ctx.wm = { img: await embedAsset(ctx, cfg.asset), ratio: a.h / a.w, image: true };
+  } else {
+    const a = { size: cfg.size, color: cfg.color, bold: cfg.bold, serif: cfg.serif }, m = measureText(cfg.text || ' ', a);
+    ctx.wm = { img: await ctx.out.embedPng(await textPng(cfg.text || ' ', a, m, 3)), w: m.w, h: m.h };
+  }
+  return ctx.wm;
+}
+function regionS(it, g) { const d = visibleD(it, g); return { x: d.x, y: g.dh - d.y - d.h, w: d.w, h: d.h }; }
+async function drawWatermark(ctx, page, it, g, cfg) {
+  const L = ctx.L, wm = await wmAsset(ctx, cfg), r = regionS(it, g);
+  const w = wm.image ? r.w * cfg.imgScale : wm.w, h = wm.image ? w * wm.ratio : wm.h;
+  const th = cfg.angle * Math.PI / 180, c = Math.cos(th), s = Math.sin(th);
+  await withCTM(ctx, page, ctmFor(g.R, g), () => {
+    for (const [cx, cy] of wmPlacements(r, w, h, cfg)) {
+      const ax = cx - (w / 2) * c + (h / 2) * s, ay = cy - (w / 2) * s - (h / 2) * c;
+      page.drawImage(wm.img, { x: ax, y: ay, width: w, height: h, rotate: L.degrees(cfg.angle), opacity: cfg.opacity });
+    }
+  });
+}
+function pnText(cfg, n, total) { return (cfg.fmt === 'custom' ? cfg.custom : cfg.fmt).replace(/\{n\}/g, n).replace(/\{total\}/g, total); }
+function pnPlan(items, cfg) {
+  const scope = cfg.scope === 'selected' && S.sel.size ? new Set([...S.sel]) : null;
+  const list = items.filter((it, i) => (!scope || scope.has(it.id)) && !(cfg.skipFirst && i === 0));
+  const map = new Map(); list.forEach((it, k) => map.set(it.id, cfg.start + k));
+  return { map, total: cfg.start + list.length - 1 };
+}
+async function drawPageNum(ctx, page, it, g, cfg, n, total) {
+  const L = ctx.L, text = pnText(cfg, n, total), r = regionS(it, g), m = cfg.margin;
+  const v = cfg.pos[0], hpos = cfg.pos[1];
+  await withCTM(ctx, page, ctmFor(g.R, g), async () => {
+    if (isLatin(text)) {
+      const fk = cfg.bold ? 'HelveticaBold' : 'Helvetica';
+      ctx.fonts[fk] ||= await ctx.out.embedFont(L.StandardFonts[fk]);
+      const f = ctx.fonts[fk], tw = f.widthOfTextAtSize(text, cfg.size), cap = f.heightAtSize(cfg.size, { descender: false });
+      const x = hpos === 'l' ? r.x + m : hpos === 'r' ? r.x + r.w - m - tw : r.x + (r.w - tw) / 2;
+      const y = v === 'b' ? r.y + m : r.y + r.h - m - cap;
+      page.drawText(text, { x, y, size: cfg.size, font: f, color: L.rgb(...hexToRgb01(cfg.color)) });
+    } else {
+      const a = { size: cfg.size, color: cfg.color, bold: cfg.bold }, mm = measureText(text, a);
+      const img = await ctx.out.embedPng(await textPng(text, a, mm, 4));
+      const x = (hpos === 'l' ? r.x + m : hpos === 'r' ? r.x + r.w - m - mm.w + mm.pad * 2 : r.x + (r.w - mm.w) / 2) - (hpos === 'c' ? 0 : mm.pad);
+      const y = v === 'b' ? r.y + m - mm.pad - cfg.size * 0.25 : r.y + r.h - m - mm.h + mm.pad + cfg.size * 0.1;
+      page.drawImage(img, { x, y, width: mm.w, height: mm.h });
+    }
+  });
+}
+function applyCrop(page, it, g) {
+  const b = cropB(it, g); if (!b) return;
+  const x = g.vx + b.x, y = g.vy + b.y;
+  page.setMediaBox(x, y, b.w, b.h); page.setCropBox(x, y, b.w, b.h);
+  try { page.setTrimBox(x, y, b.w, b.h); page.setBleedBox(x, y, b.w, b.h); page.setArtBox(x, y, b.w, b.h); } catch { }
+}
+async function addRasterPage(ctx, it, g, dpi) {
+  const c = await renderItem(it, dpi / 72, 0, { print: true });
+  const kx = c.width / g.W, ky = c.height / g.H, x = c.getContext('2d');
+  x.fillStyle = '#000';
+  for (const r of it.redacts) {
+    const x0 = Math.floor(r.x * kx) - 1, y0 = Math.floor((g.H - r.y - r.h) * ky) - 1;
+    x.fillRect(x0, y0, Math.ceil(r.w * kx) + 2, Math.ceil(r.h * ky) + 2);
+  }
+  const bytes = await blobBytes(await canvasToBlob(c, 'image/jpeg', 0.9)); freeCanvas(c);
+  const img = await ctx.out.embedJpg(bytes);
+  const page = ctx.out.addPage([g.W, g.H]); page.drawImage(img, { x: 0, y: 0, width: g.W, height: g.H });
+  return page;
+}
+function stripMeta(doc, L) {
+  doc.setTitle(''); doc.setAuthor(''); doc.setSubject(''); doc.setKeywords([]); doc.setCreator(''); doc.setProducer('');
+  try { doc.catalog.delete(L.PDFName.of('Metadata')); } catch { }
+}
+/**
+ * items: 工作台頁面陣列
+ * opt: {wm, pn, compress, stripMeta, rasterDpi, libCache}
+ */
+async function buildPdf(items, opt = {}, prog = () => { }) {
+  const L = await getPdfLib(), { PDFDocument } = L;
+  const cache = opt.libCache || new Map();
+  const out = await PDFDocument.create();
+  const ctx = { out, L, imgCache: new Map(), fonts: {}, wm: null };
+  const mode = new Map();
+  for (const it of items) {
+    const s = S.sources.get(it.src);
+    if (s.type === 'pdf') mode.set(it.id, it.redacts.length ? 'raster' : (await getLibDoc(s, cache)) ? 'copy' : 'raster');
+    else mode.set(it.id, s.type);
+  }
+  const bySrc = new Map(), copied = new Map();
+  for (const it of items) if (mode.get(it.id) === 'copy') { if (!bySrc.has(it.src)) bySrc.set(it.src, []); bySrc.get(it.src).push(it); }
+  for (const [sid, list] of bySrc) {
+    const pages = await out.copyPages(cache.get(sid), list.map(i => i.idx));
+    list.forEach((it, k) => copied.set(it.id, pages[k]));
+  }
+  const pn = opt.pn ? pnPlan(items, opt.pn) : null;
+  const wmScope = opt.wm && opt.wm.scope === 'selected' && S.sel.size ? new Set(S.sel) : null;
+  const span = opt.compress ? 0.55 : 0.95;
+  for (let k = 0; k < items.length; k++) {
+    const it = items[k], s = S.sources.get(it.src), m = mode.get(it.id);
+    const g = geo(it);
+    let page;
+    if (m === 'copy') page = out.addPage(copied.get(it.id));
+    else if (m === 'raster') { page = await addRasterPage(ctx, it, g, opt.rasterDpi || S.rdx.dpi); g.vx = g.vy = 0; }
+    else if (m === 'image') { page = out.addPage([g.W, g.H]); page.drawImage(await embedAsset(ctx, s.asset), { x: g.ix, y: g.iy, width: g.iw, height: g.ih }); }
+    else page = out.addPage([g.W, g.H]);
+    page.setRotation(L.degrees(g.R));
+    for (const a of it.annots) await drawAnnot(ctx, page, a, g);
+    if (opt.wm && (!wmScope || wmScope.has(it.id))) await drawWatermark(ctx, page, it, g, opt.wm);
+    if (pn && pn.map.has(it.id)) await drawPageNum(ctx, page, it, g, opt.pn, pn.map.get(it.id), pn.total);
+    applyCrop(page, it, g);
+    prog((k + 1) / items.length * span, `處理第 ${k + 1} / ${items.length} 頁`);
+    if (k % 4 === 3) await tick();
+  }
+  if (!opt.libCache) cache.clear();
+  if (opt.stripMeta || items.some(i => i.redacts.length)) stripMeta(out, L);
+  else { out.setProducer('PDF 工作台'); out.setCreator('PDF 工作台'); }
+  let stats = null;
+  if (opt.compress) stats = await compressDoc(out, opt.compress, (p, msg) => prog(span + p * (0.95 - span), msg));
+  prog(0.97, '寫入檔案…');
+  const bytes = await out.save({ useObjectStreams: true });
+  return opt.withStats ? { bytes, stats } : bytes;
+}
+
+/* =====================================================================
+   壓縮：只重新編碼「內嵌點陣圖片」，文字、字型與向量內容完全不動，
+   因此壓縮後文字仍可反白、搜尋與複製。
+   ===================================================================== */
+function unpredictPNG(data, colors, bpc, columns) {
+  const bpp = Math.max(1, Math.ceil(colors * bpc / 8));
+  const rowLen = Math.ceil(colors * bpc * columns / 8);
+  const rows = Math.floor(data.length / (rowLen + 1));
+  const out = new Uint8Array(rows * rowLen);
+  let prev = new Uint8Array(rowLen);
+  for (let r = 0; r < rows; r++) {
+    const ft = data[r * (rowLen + 1)];
+    const src = data.subarray(r * (rowLen + 1) + 1, (r + 1) * (rowLen + 1));
+    const cur = out.subarray(r * rowLen, (r + 1) * rowLen);
+    for (let i = 0; i < rowLen; i++) {
+      const a = i >= bpp ? cur[i - bpp] : 0;
+      const b = prev[i];
+      const c = i >= bpp ? prev[i - bpp] : 0;
+      let x = src[i];
+      if (ft === 1) x += a;
+      else if (ft === 2) x += b;
+      else if (ft === 3) x += (a + b) >> 1;
+      else if (ft === 4) {
+        const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+        x += pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      }
+      cur[i] = x & 255;
+    }
+    prev = cur;
+  }
+  return out;
+}
+/** 回傳影像色彩通道數：1（灰階）、3（RGB）、4（CMYK）；不支援者回傳 null */
+function imgColorInfo(L, d) {
+  const N = s => L.PDFName.of(s);
+  const cs = d.lookup(N('ColorSpace'));
+  if (!cs) return null;
+  if (cs === N('DeviceRGB') || cs === N('CalRGB')) return { n: 3 };
+  if (cs === N('DeviceGray') || cs === N('CalGray')) return { n: 1 };
+  if (cs === N('DeviceCMYK')) return { n: 4 };
+  if (cs instanceof L.PDFArray) {
+    const t = cs.lookup(0);
+    if (t === N('ICCBased')) {
+      const n = cs.lookup(1)?.dict?.lookup(N('N'))?.asNumber?.();
+      return [1, 3, 4].includes(n) ? { n } : null;
+    }
+    if (t === N('CalRGB')) return { n: 3 };
+    if (t === N('CalGray')) return { n: 1 };
+  }
+  return null;
+}
+function filtersOf(L, d) {
+  const f = d.lookup(L.PDFName.of('Filter'));
+  if (!f) return [];
+  if (f instanceof L.PDFName) return [f];
+  if (f instanceof L.PDFArray) {
+    const o = [];
+    for (let i = 0; i < f.size(); i++) o.push(f.lookup(i));
+    return o;
+  }
+  return [null];
+}
+function decodeParmsList(L, d, n) {
+  const p = d.lookup(L.PDFName.of('DecodeParms'));
+  const one = q => {
+    if (!(q instanceof L.PDFDict)) return null;
+    const g = k => q.lookup(L.PDFName.of(k))?.asNumber?.();
+    return { predictor: g('Predictor') || 1, colors: g('Colors'), bpc: g('BitsPerComponent'), columns: g('Columns') };
+  };
+  if (p instanceof L.PDFArray) {
+    const o = [];
+    for (let i = 0; i < n; i++) o.push(i < p.size() ? one(p.lookup(i)) : null);
+    return o;
+  }
+  return Array.from({ length: n }, (_, i) => i === 0 ? one(p) : null);
+}
+/** 讀取 /Decode 陣列；判斷是否為 CMYK 常見的反相 [1 0 1 0 1 0 1 0] */
+function decodeArrayOf(L, d) {
+  const a = d.lookup(L.PDFName.of('Decode'));
+  if (!(a instanceof L.PDFArray)) return null;
+  const v = [];
+  for (let i = 0; i < a.size(); i++) v.push(a.lookup(i)?.asNumber?.());
+  return v;
+}
+const isInvertedDecode = (v, n) => !!v && v.length === n * 2 && v.every((x, i) => x === (i % 2 === 0 ? 1 : 0));
+/** JPEG 是否含 Adobe APP14 標記（Adobe 規範的 CMYK JPEG 以反相值儲存） */
+function hasAdobeApp14(b) {
+  let o = 2;
+  while (o < b.length - 12) {
+    if (b[o] !== 0xFF) return false;
+    const m = b[o + 1], len = (b[o + 2] << 8) | b[o + 3];
+    if (m === 0xEE && b[o + 4] === 0x41 && b[o + 5] === 0x64 && b[o + 6] === 0x6F && b[o + 7] === 0x62 && b[o + 8] === 0x65) return true;
+    if (m === 0xDA) return false;
+    o += 2 + len;
+  }
+  return false;
+}
+function ascii85(b) {
+  const out = new Uint8Array(Math.ceil(b.length * 4 / 5) + 8);
+  let o = 0, cnt = 0, t = 0, i = 0;
+  if (b[0] === 0x3C && b[1] === 0x7E) i = 2;
+  for (; i < b.length; i++) {
+    const c = b[i];
+    if (c === 0x7E) break;
+    if (c <= 32) continue;
+    if (c === 0x7A && cnt === 0) {
+      out[o++] = 0; out[o++] = 0; out[o++] = 0; out[o++] = 0;
+      continue;
+    }
+    if (c < 33 || c > 117) continue;
+    t = t * 85 + (c - 33);
+    if (++cnt === 5) {
+      out[o++] = (t >>> 24) & 255; out[o++] = (t >>> 16) & 255; out[o++] = (t >>> 8) & 255; out[o++] = t & 255;
+      t = 0; cnt = 0;
+    }
+  }
+  if (cnt > 1) {
+    for (let k = cnt; k < 5; k++) t = t * 85 + 84;
+    const q = [(t >>> 24) & 255, (t >>> 16) & 255, (t >>> 8) & 255, t & 255];
+    for (let k = 0; k < cnt - 1; k++) out[o++] = q[k];
+  }
+  return out.subarray(0, o);
+}
+function asciiHex(b) {
+  const out = new Uint8Array(Math.ceil(b.length / 2));
+  let o = 0, hi = -1;
+  for (const c of b) {
+    if (c === 0x3E) break;
+    const v = c >= 48 && c <= 57 ? c - 48 : c >= 65 && c <= 70 ? c - 55 : c >= 97 && c <= 102 ? c - 87 : -1;
+    if (v < 0) continue;
+    if (hi < 0) hi = v;
+    else { out[o++] = hi * 16 + v; hi = -1; }
+  }
+  if (hi >= 0) out[o++] = hi * 16;
+  return out.subarray(0, o);
+}
+/** 未壓縮像素（灰階 / RGB / CMYK，8 bit）→ ImageData */
+function rawToImageData(data, W, H, n, invert) {
+  const id = new ImageData(W, H), px = id.data, N = W * H;
+  if (n === 3) {
+    for (let i = 0, j = 0, k = 0; i < N; i++, j += 3, k += 4) {
+      px[k] = data[j]; px[k + 1] = data[j + 1]; px[k + 2] = data[j + 2]; px[k + 3] = 255;
+    }
+  } else if (n === 1) {
+    for (let i = 0, k = 0; i < N; i++, k += 4) {
+      px[k] = px[k + 1] = px[k + 2] = data[i]; px[k + 3] = 255;
+    }
+  } else {
+    // CMYK → RGB：R = (1−C)(1−K)、G = (1−M)(1−K)、B = (1−Y)(1−K)
+    for (let i = 0, j = 0, k = 0; i < N; i++, j += 4, k += 4) {
+      let c = data[j], m = data[j + 1], y = data[j + 2], kk = data[j + 3];
+      if (invert) { c = 255 - c; m = 255 - m; y = 255 - y; kk = 255 - kk; }
+      const w = 255 - kk;
+      px[k] = (255 - c) * w / 255;
+      px[k + 1] = (255 - m) * w / 255;
+      px[k + 2] = (255 - y) * w / 255;
+      px[k + 3] = 255;
+    }
+  }
+  return id;
+}
+async function recompressImage(L, ctx, o, maxDim, q) {
+  const N = s => L.PDFName.of(s), d = o.dict;
+  const im = d.lookup(N('ImageMask'));
+  if (im && im.asBoolean && im.asBoolean()) return null;
+  if (d.lookup(N('Mask')) instanceof L.PDFArray) return null;
+  const W = d.lookup(N('Width'))?.asNumber?.(), H = d.lookup(N('Height'))?.asNumber?.();
+  if (!W || !H || W * H > 60e6) return null;
+  if (o.contents.length < 12000) return null;
+  const bpc = d.lookup(N('BitsPerComponent'))?.asNumber?.() ?? 8;
+  const flt = filtersOf(L, d), parms = decodeParmsList(L, d, flt.length), cs = imgColorInfo(L, d);
+  if (!cs) return null;
+  // /Decode 只接受「無」或 CMYK 反相陣列，其他情況保留原圖
+  const decode = decodeArrayOf(L, d);
+  const inverted = isInvertedDecode(decode, cs.n);
+  if (d.has(N('Decode')) && !(cs.n === 4 && inverted)) return null;
+
+  // 依序解開濾鏡鏈（ASCII85 / ASCIIHex / Flate），最後一層可為 DCT（JPEG）
+  let data = o.contents, jpeg = false;
+  for (let i = 0; i < flt.length; i++) {
+    const f = flt[i];
+    if (f === N('DCTDecode')) {
+      if (i !== flt.length - 1) return null;
+      jpeg = true;
+      break;
+    }
+    if (f === N('FlateDecode')) {
+      if (typeof DecompressionStream === 'undefined') return null;
+      data = await inflate(data);
+      const pr = parms[i];
+      if (pr && pr.predictor >= 10) data = unpredictPNG(data, pr.colors || cs.n, pr.bpc || bpc, pr.columns || W);
+      else if (pr && pr.predictor === 2) return null;
+    } else if (f === N('ASCII85Decode')) data = ascii85(data);
+    else if (f === N('ASCIIHexDecode')) data = asciiHex(data);
+    else return null;
+  }
+
+  let source;
+  if (jpeg) {
+    if (exifOrientation(data) !== 1) return null;
+    // CMYK JPEG：只處理 Adobe 規範（APP14 + 反相 Decode），瀏覽器解碼結果才與 PDF 閱讀器一致
+    if (cs.n === 4 && !(hasAdobeApp14(data) && inverted)) return null;
+    source = new Blob([data], { type: 'image/jpeg' });
+  } else {
+    if (bpc !== 8 || data.length < W * H * cs.n) return null;
+    source = rawToImageData(data, W, H, cs.n, inverted);
+  }
+
+  const k = Math.min(1, maxDim / Math.max(W, H));
+  const tw = Math.max(1, Math.round(W * k)), th = Math.max(1, Math.round(H * k));
+  let bmp;
+  try { bmp = await createImageBitmap(source, { resizeWidth: tw, resizeHeight: th, resizeQuality: 'high' }); }
+  catch { bmp = await createImageBitmap(source); }
+  const c = mkCanvas(tw, th), x = c.getContext('2d');
+  x.fillStyle = '#fff';
+  x.fillRect(0, 0, tw, th);
+  x.drawImage(bmp, 0, 0, tw, th);
+  bmp.close && bmp.close();
+  const bytes = await blobBytes(await canvasToBlob(c, 'image/jpeg', q));
+  freeCanvas(c);
+  if (bytes.length >= o.contents.length * 0.92) return null;
+
+  const nd = d.clone(ctx);
+  nd.set(N('Width'), L.PDFNumber.of(tw));
+  nd.set(N('Height'), L.PDFNumber.of(th));
+  nd.set(N('BitsPerComponent'), L.PDFNumber.of(8));
+  nd.set(N('Filter'), N('DCTDecode'));
+  // Canvas 輸出一律為 sRGB JPEG，必須同步改為 DeviceRGB，否則保留 ICCBased / CMYK 會偏色
+  nd.set(N('ColorSpace'), N('DeviceRGB'));
+  nd.delete(N('DecodeParms'));
+  nd.delete(N('Decode'));
+  nd.delete(N('Length'));
+  return L.PDFRawStream.of(nd, bytes);
+}
+async function compressDoc(doc, cfg, prog = () => { }) {
+  const L = await getPdfLib(), N = s => L.PDFName.of(s), ctx = doc.context;
+  let maxIn = 1;
+  for (const p of doc.getPages()) {
+    const { width, height } = p.getSize();
+    maxIn = Math.max(maxIn, width / 72, height / 72);
+  }
+  const maxDim = Math.max(300, Math.round(maxIn * cfg.dpi));
+  const objs = ctx.enumerateIndirectObjects();
+  const isImg = o => o instanceof L.PDFRawStream && o.dict.get(N('Subtype')) === N('Image');
+  // SMask / Mask 是其他圖片的遮罩，不可轉成 RGB JPEG
+  const masks = new Set();
+  for (const [, o] of objs) {
+    if (!isImg(o)) continue;
+    for (const k of ['SMask', 'Mask']) {
+      const v = o.dict.get(N(k));
+      if (v instanceof L.PDFRef) masks.add(v.toString());
+    }
+  }
+  const imgs = objs.filter(([r, o]) => isImg(o) && !masks.has(r.toString()));
+  const st = { images: imgs.length, recompressed: 0, imgBefore: 0, imgAfter: 0, streams: 0 };
+  for (let i = 0; i < imgs.length; i++) {
+    const [ref, o] = imgs[i];
+    prog(i / Math.max(1, imgs.length) * 0.9, `最佳化內嵌圖片 ${i + 1} / ${imgs.length}`);
+    try {
+      const r = await recompressImage(L, ctx, o, maxDim, cfg.q);
+      if (r) {
+        ctx.assign(ref, r);
+        st.recompressed++;
+        st.imgBefore += o.contents.length;
+        st.imgAfter += r.contents.length;
+      }
+    } catch (e) { console.warn('略過圖片', e); }
+    if (i % 2 === 1) await tick();
+  }
+  if (cfg.deflate !== false && typeof CompressionStream !== 'undefined') {
+    prog(0.92, '壓縮未壓縮的內容串流…');
+    for (const [ref, o] of objs) {
+      if (!(o instanceof L.PDFRawStream) || ctx.lookup(ref) !== o) continue;
+      if (o.dict.has(N('Filter')) || o.contents.length < 400) continue;
+      const t = o.dict.get(N('Type'));
+      if (t === N('Metadata') || t === N('XRef') || t === N('ObjStm')) continue;
+      try {
+        const z = await deflate(o.contents);
+        if (z.length < o.contents.length * 0.9) {
+          o.dict.set(N('Filter'), N('FlateDecode'));
+          ctx.assign(ref, L.PDFRawStream.of(o.dict, z));
+          st.streams++;
+        }
+      } catch { }
+    }
+  }
+  if (cfg.stripMeta) stripMeta(doc, L);
+  prog(1);
+  return st;
+}
+function pristineSource() {
+  if (S.sources.size !== 1) return null;
+  const s = [...S.sources.values()][0];
+  if (s.type !== 'pdf' || S.pages.length !== s.num) return null;
+  return S.pages.every((p, i) => p.src === s.id && p.idx === i && !p.rot && !p.crop && !p.annots.length && !p.redacts.length) ? s : null;
+}
+
+/* ---------------- 匯出與下載 ---------------- */
+const effectOpts = () => ({ wm: S.wm.on ? S.wm : null, pn: S.pn.on ? S.pn : null });
+async function exportPdf(items, opt = {}, name) {
+  if (!items.length) return toast('沒有可匯出的頁面', 'warn');
+  const pr = busy('產生 PDF 中…');
+  try {
+    const r = await buildPdf(items, { ...opt, withStats: true }, (p, m) => pr.set(p, m));
+    saveBlob(new Blob([r.bytes], { type: 'application/pdf' }), name || `${baseName()}_edited.pdf`);
+    toast(`已匯出（${fmtSize(r.bytes.length)}）`);
+    return r;
+  } catch (e) { console.error(e); toast('匯出失敗：' + (e.message || e), 'err', 6000); }
+  finally { pr.done(); }
+}
+async function zipAndSave(files, name) {
+  const JSZip = await getJSZip(), z = new JSZip();
+  files.forEach(f => z.file(f.name, f.data, { binary: true, compression: /\.(jpe?g|png|webp)$/i.test(f.name) ? 'STORE' : 'DEFLATE' }));
+  const blob = await z.generateAsync({ type: 'blob' });
+  saveBlob(blob, name);
+}
+/* =====================================================================
+   介面：工具列、設定面板、頁面編輯器、簽名板、比較、表單
+   ===================================================================== */
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+const TOOLS = [
+  { id: 'organize', g: '頁面', name: '合併與排列', icon: 'grid' },
+  { id: 'split', g: '頁面', name: '拆分 PDF', icon: 'scissors' },
+  { id: 'rotate', g: '頁面', name: '旋轉', icon: 'rotr' },
+  { id: 'crop', g: '頁面', name: '裁剪', icon: 'crop' },
+  { id: 'toimg', g: '轉換', name: 'PDF 轉圖片', icon: 'image' },
+  { id: 'fromimg', g: '轉換', name: '圖片轉 PDF', icon: 'images' },
+  { id: 'compress', g: '轉換', name: '壓縮 PDF', icon: 'compress' },
+  { id: 'edit', g: '編輯', name: '編輯與標註', icon: 'pen' },
+  { id: 'sign', g: '編輯', name: '簽名', icon: 'sign' },
+  { id: 'redact', g: '編輯', name: '標記密文', icon: 'redact' },
+  { id: 'watermark', g: '版面', name: '浮水印', icon: 'drop' },
+  { id: 'pagenum', g: '版面', name: '頁碼', icon: 'hash' },
+  { id: 'compare', g: '進階', name: '比較 PDF', icon: 'compare' },
+  { id: 'form', g: '進階', name: 'PDF 表單', icon: 'form' },
+];
+function pickFiles(accept, multiple = true) {
+  return new Promise(res => {
+    const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.multiple = multiple; i.style.display = 'none';
+    document.body.appendChild(i); i.onchange = () => { res([...i.files]); i.remove(); }; i.click();
+  });
+}
+function needSel() { if (!S.sel.size) { toast('請先在工作台點選頁面', 'warn'); return false; } return true; }
+
+/* ---------------- 面板元件 ---------------- */
+const getPath = p => p.split('.').reduce((o, k) => o?.[k], S);
+function setPath(p, v) { const ks = p.split('.'), last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; }
+const fmtOut = (v, f) => f === '%' ? Math.round(v * 100) + '%' : f === '°' ? v + '°' : f ? v + ' ' + f : v;
+const head = (icon, t, d) => `<div class="ph-head">
+  <div class="ph-row"><h3>${ICON(icon)}${t}</h3>
+    <button type="button" class="btn icon sm ghost panel-toggle" data-a="togglePanel" aria-label="收合／展開設定面板" title="收合／展開設定面板">${ICON('panel')}</button>
+  </div>${d ? `<p>${d}</p>` : ''}</div>`;
+const sec = (t, body) => `<div class="sec">${t ? `<h4>${t}</h4>` : ''}${body}</div>`;
+const rng = (p, label, min, max, step, fmt = '') => `<label class="fld"><span>${label}<output data-for="${p}"></output></span><input type="range" data-bind="${p}" min="${min}" max="${max}" step="${step}" data-fmt="${fmt}"></label>`;
+const seg = (p, opts, num) => `<div class="seg" data-bind="${p}" ${num ? 'data-num' : ''}>${opts.map(([v, l]) => `<button type="button" data-v="${v}">${l}</button>`).join('')}</div>`;
+const chk = (p, label) => `<label class="chk"><input type="checkbox" data-bind="${p}">${label}</label>`;
+const sel = (p, opts) => `<select class="inp" data-bind="${p}">${opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>`;
+const btn = (a, label, cls = '', icon) => `<button class="btn ${cls}" data-a="${a}">${icon ? ICON(icon) : ''}${label}</button>`;
+const scopeSeg = p => `<div class="fld"><span>套用範圍</span>${seg(p, [['all', '全部頁面'], ['selected', '已選頁面']])}</div>`;
+function bindPanel(root, onChange) {
+  root.querySelectorAll('[data-bind]').forEach(el => {
+    const p = el.dataset.bind;
+    if (el.classList.contains('seg') || el.classList.contains('grid9')) {
+      const mark = () => el.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === String(getPath(p))));
+      mark();
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-v]'); if (!b) return;
+        const v = el.hasAttribute('data-num') ? +b.dataset.v : b.dataset.v;
+        setPath(p, v); mark(); saveSettings(); onChange && onChange(p, v);
+      });
+      return;
+    }
+    const v = getPath(p);
+    if (el.type === 'checkbox') el.checked = !!v; else if (v != null) el.value = v;
+    const out = root.querySelector(`output[data-for="${p}"]`), show = () => out && (out.textContent = fmtOut(el.value, el.dataset.fmt));
+    show();
+    el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', () => {
+      let val = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.type === 'number') ? parseFloat(el.value) : el.value;
+      if (typeof val === 'number' && Number.isNaN(val)) return;
+      setPath(p, val); show(); saveSettings(); onChange && onChange(p, val);
+    });
+  });
+}
+function srcListHtml() {
+  const list = [...S.sources.values()].filter(s => s.type !== 'blank');
+  if (!list.length) return '<p class="note">尚未加入檔案</p>';
+  return `<div class="srclist">${list.map(s => `<div class="srcitem"><span class="dot" style="background:${s.color}"></span><span class="nm" title="${esc(s.name)}">${esc(s.name)}</span><small>${s.num} 頁 · ${fmtSize(s.size)}</small><button class="btn icon sm ghost" data-a="rmSrc" data-id="${s.id}" title="移除此檔案">${ICON('x')}</button></div>`).join('')}</div>`;
+}
+const selCount = () => `<span data-selcount></span>`;
+function updateSelCount() { $$('[data-selcount]').forEach(e => e.textContent = S.sel.size ? `（已選 ${S.sel.size} 頁）` : '（未選取）'); }
+
+/* ---------------- 各工具面板 ---------------- */
+const PANELS = {
+  organize: () => head('grid', '合併與排列', '加入多個 PDF／圖片即自動串接合併。拖曳縮圖調整順序（觸控裝置：長按後拖曳）；點選縮圖可多選，選取多頁時可整批拖曳。')
+    + sec(`檔案（${[...S.sources.values()].filter(s => s.type !== 'blank').length}）`, srcListHtml() + `<div class="row" style="margin-top:10px">${btn('add', '加入檔案', '', 'plus')}</div>`)
+    + sec('選取', `<div class="row">${btn('selAll', '全選', 'sm')}${btn('selNone', '取消', 'sm')}${btn('selInv', '反向', 'sm')}</div><div class="row">${btn('selOdd', '奇數頁', 'sm')}${btn('selEven', '偶數頁', 'sm')}</div>`)
+    + sec('所選頁面 ' + selCount(), `<div class="row">${btn('rotl', '左轉', 'sm', 'rotl')}${btn('rotr', '右轉', 'sm', 'rotr')}${btn('dup', '複製', 'sm', 'copy')}${btn('del', '刪除', 'sm danger', 'trash')}</div><div class="row">${btn('toStart', '移到最前', 'sm')}${btn('toEnd', '移到最後', 'sm')}</div>`)
+    + sec('其他', `<div class="row">${btn('blank', '插入空白頁', 'sm', 'blank')}${btn('reverse', '反轉頁序', 'sm')}</div>`)
+    + sec('', btn('export', '匯出合併後的 PDF', 'primary block', 'down')),
+
+  split: () => head('scissors', '拆分 PDF', '依工作台目前的頁序拆分；頁面上的編輯、浮水印、頁碼設定都會一併套用。')
+    + sec('拆分方式', seg('split.mode', [['selected', '擷取所選'], ['each', '每頁一檔'], ['ranges', '依範圍'], ['every', '每 N 頁']])
+      + `<div style="margin-top:12px" id="splitOpt"></div>`)
+    + sec('', btn('runSplit', '拆分並下載', 'primary block', 'scissors')),
+
+  rotate: () => head('rotr', '旋轉', '旋轉只改變頁面方向，不會重新取樣內容，文字仍可選取。也可直接按縮圖右上角的旋轉鈕。')
+    + sec('所選頁面 ' + selCount(), `<div class="row">${btn('rotl', '向左 90°', '', 'rotl')}${btn('rotr', '向右 90°', '', 'rotr')}</div><div class="row">${btn('rot180', '180°')}${btn('rotReset', '重設')}</div>`)
+    + sec('全部頁面', `<div class="row">${btn('rotAllL', '全部向左', '', 'rotl')}${btn('rotAllR', '全部向右', '', 'rotr')}</div><div class="row">${btn('rotPortrait', '將橫向頁轉為直向')}</div>`),
+
+  crop: () => head('crop', '裁剪', '在頁面上直接框選要保留的範圍，可套用到單頁、所選頁或全部頁面。')
+    + sec('手動框選', `<div class="row">${btn('cropOpen', '開啟裁剪編輯器', 'primary', 'crop')}</div><p class="note" style="margin-top:10px">在編輯器中拖曳框選範圍後，可按「套用到全部頁面」一次處理整份文件。</p>`)
+    + sec('自動裁掉白邊', rng('cropPad', '保留邊距', 0, 40, 1, 'pt') + scopeSeg('cropScope') + `<div class="row" style="margin-top:8px">${btn('cropAuto', '自動偵測並裁剪')}</div>`)
+    + sec('清除', `<div class="row">${btn('cropClrSel', '清除所選頁裁剪', 'sm')}${btn('cropClrAll', '清除全部裁剪', 'sm')}</div>`),
+
+  toimg: () => head('image', 'PDF 轉圖片', '單頁直接下載圖片；多頁會打包成 ZIP。')
+    + sec('輸出設定', `<div class="fld"><span>格式</span>${seg('toimg.fmt', [['jpg', 'JPG'], ['png', 'PNG']])}</div>
+      <div class="fld"><span>解析度</span>${seg('toimg.dpi', [[72, '72'], [150, '150'], [200, '200'], [300, '300 DPI']], true)}</div>
+      <div id="toimgQ">${rng('toimg.q', 'JPG 品質', 0.5, 1, 0.01, '%')}</div>${scopeSeg('toimg.scope')}${chk('toimg.edits', '包含標註、浮水印、頁碼與裁剪效果')}`)
+    + sec('', btn('runToImg', '匯出圖片', 'primary block', 'down')),
+
+  fromimg: () => head('images', '圖片轉 PDF', '圖片會成為工作台中的頁面，可與 PDF 頁面混合排序後一起匯出。JPG 原檔直接內嵌，不重新壓縮、不損畫質。')
+    + sec('', `<div class="row">${btn('addImgs', '加入圖片', 'primary', 'plus')}</div>`)
+    + sec('頁面版面（套用到所有圖片頁）', `<div class="fld"><span>紙張大小</span>${seg('img.size', [['a4', 'A4'], ['letter', 'Letter'], ['a5', 'A5'], ['fit', '符合圖片']])}</div>
+      <div class="fld"><span>方向</span>${seg('img.orient', [['auto', '自動'], ['portrait', '直向'], ['landscape', '橫向']])}</div>${rng('img.margin', '邊距', 0, 40, 1, 'mm')}`)
+    + sec('', btn('exportImgs', '僅將圖片頁匯出為 PDF', 'block', 'down') + `<div style="height:8px"></div>` + btn('export', '匯出整個工作台', 'block')),
+
+  compress: () => head('compress', '壓縮 PDF', '只重新取樣與編碼「內嵌圖片」，文字、字型與向量圖形完全不動 —— 壓縮後文字依然可以反白、搜尋與複製。')
+    + sec('壓縮程度', `<div class="presets">${[['light', '輕度', '200 DPI · 高畫質'], ['balanced', '建議', '150 DPI · 平衡'], ['strong', '強力', '100 DPI · 最小檔'], ['custom', '自訂', '自行調整']].map(([v, t, d]) => `<button class="preset ${S.cmp.preset === v ? 'on' : ''}" data-a="cmpPreset" data-v="${v}"><b>${t}</b><small>${d}</small></button>`).join('')}</div>
+      <div id="cmpCustom" style="margin-top:12px" ${S.cmp.preset === 'custom' ? '' : 'hidden'}>${rng('cmp.dpi', '圖片最高解析度', 50, 300, 10, 'DPI')}${rng('cmp.q', 'JPEG 品質', 0.3, 0.95, 0.01, '%')}</div>`)
+    + sec('選項', chk('cmp.stripMeta', '移除中繼資料（標題、作者、建立工具等）') + chk('cmp.deflate', '壓縮未壓縮的內容串流（無損）'))
+    + sec('', btn('runCompress', '壓縮並下載', 'primary block', 'compress') + `<div id="cmpResult" style="margin-top:12px"></div>`)
+    + sec('', `<p class="note">已是高度壓縮或幾乎沒有圖片的 PDF（例如純文字文件），可縮減空間有限。若工作台只有一份未修改的 PDF，會在原檔上直接最佳化並保留書籤、連結與表單。</p>`),
+
+  edit: () => head('pen', '編輯與標註', '在頁面上加入文字框、圖片、畫筆、螢光筆與幾何圖形。')
+    + sec('', `<div class="row">${btn('openEd', '開啟編輯器', 'primary', 'edit')}</div><p class="note" style="margin-top:10px">會開啟目前選取的第一頁（未選取則為第 1 頁）。也可雙擊縮圖或按縮圖上的 ✎。</p>`)
+    + sec('小技巧', `<ul class="tips"><li>文字框可勾選「白底」來遮蓋原本的字，達到「修改文字」效果。</li><li>選取標註後可「複製到所有頁面」，適合每頁加註或蓋章。</li><li>iPad 可開啟「僅 Apple Pencil 繪圖」，手指用來捲動頁面。</li><li>中文文字使用裝置內建字型繪製，不需下載字型。</li><li>快捷鍵：<span class="kbd">Delete</span> 刪除標註、<span class="kbd">⌘/Ctrl+Z</span> 復原、<span class="kbd">PageUp/Down</span> 換頁。</li></ul>`),
+
+  sign: () => head('sign', 'PDF 簽名', '手寫或上傳簽名後，點一下頁面即可放置，並可自由拖曳與縮放。')
+    + sec('我的簽名', (S.sigs.length ? `<div class="siglist">${S.sigs.map(s => `<div class="sig ${S.pendingAsset === s.id ? 'on' : ''}" data-a="useSig" data-id="${s.id}" style="background-image:url(${S.assets.get(s.id)?.url})"><button class="x" data-a="rmSig" data-id="${s.id}" title="刪除">✕</button></div>`).join('')}</div>` : '<p class="note">尚無簽名，請先手寫或上傳。</p>')
+      + `<div class="row" style="margin-top:10px">${btn('newSig', '手寫簽名', '', 'pen')}${btn('upSig', '上傳簽名圖檔', '', 'up')}</div>` + chk('sigRemoveBg', '上傳時自動去除白色背景') + chk('remember', '將簽名記在這台裝置（僅存於瀏覽器本機）'))
+    + sec('', btn('placeSig', '在頁面上放置簽名', 'primary block', 'sign') + `<p class="note" style="margin-top:10px">選好簽名後按此鈕，於編輯器中點一下要簽名的位置。</p>`),
+
+  redact: () => {
+    const n = S.pages.filter(p => p.redacts.length).length, t = S.pages.reduce((a, p) => a + p.redacts.length, 0);
+    return head('redact', '標記密文', '永久塗黑敏感資訊。')
+      + sec('', `<p class="note warn"><b>安全機制：</b>含密文的頁面在匯出時會以 pdf.js 重新點陣化並塗黑，原始文字、圖片與向量物件<b>不會寫入輸出檔</b>，因此無法透過移開黑框或複製取得。代價是該頁文字將無法選取（其他頁不受影響），並會一併清除文件中繼資料。</p>`)
+      + sec('手動框選', `<div class="row">${btn('openRdx', '開啟密文編輯器', 'primary', 'redact')}</div>`)
+      + sec('依關鍵字自動標記', `<label class="fld"><span>搜尋文字</span><input class="inp" data-bind="rdx.query" placeholder="例如：姓名、帳號…"></label>
+        <div class="row" style="margin-bottom:8px">${[['身分證字號', '[A-Z][12]\\d{8}'], ['手機號碼', '09\\d{2}[- ]?\\d{3}[- ]?\\d{3}'], ['Email', '[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+'], ['市話', '\\(?0\\d{1,2}\\)?[- ]?\\d{3,4}[- ]?\\d{4}']].map(([l, r]) => `<button class="btn sm" data-a="rdxPreset" data-re="${esc(r)}">${l}</button>`).join('')}</div>
+        ${chk('rdx.regex', '使用正規表示式')}${scopeSeg('rdx.scope')}<div class="row" style="margin-top:8px">${btn('rdxSearch', '搜尋並標記', '', 'search')}</div><div id="rdxResult" style="margin-top:8px"></div>`)
+      + sec(`目前：${n} 頁、${t} 處`, `<div class="fld"><span>密文頁輸出解析度</span>${seg('rdx.dpi', [[150, '150'], [200, '200'], [300, '300 DPI']], true)}</div><div class="row">${btn('rdxClear', '清除全部密文', 'sm danger')}${btn('export', '匯出已塗黑 PDF', 'sm primary')}</div>`);
+  },
+
+  watermark: () => head('drop', '浮水印', '文字或圖片浮水印，可調整位置、透明度、大小與角度。中文使用裝置字型繪製，清晰不亂碼。')
+    + sec('', `<label class="chk"><input type="checkbox" data-bind="wm.on"><b>匯出時套用浮水印</b></label>`)
+    + sec('內容', `<div class="fld">${seg('wm.type', [['text', '文字'], ['image', '圖片']])}</div><div id="wmBody"></div>`)
+    + sec('外觀', rng('wm.opacity', '透明度', 0.05, 1, 0.01, '%') + rng('wm.angle', '旋轉角度', -180, 180, 1, '°')
+      + `<div class="fld"><span>位置</span><div class="row" style="align-items:flex-start;gap:14px"><div class="grid9" data-bind="wm.pos">${['tl', 'tc', 'tr', 'ml', 'mc', 'mr', 'bl', 'bc', 'br'].map(v => `<button type="button" data-v="${v}"></button>`).join('')}</div>${seg('wm.pos', [['tile', '平鋪整頁']])}</div></div>` + scopeSeg('wm.scope'))
+    + sec('預覽', `<div class="preview-box"><canvas id="pvCanvas"></canvas></div>`)
+    + sec('', btn('export', '匯出含浮水印的 PDF', 'primary block', 'down')),
+
+  pagenum: () => head('hash', '添加頁碼', '依工作台頁序編號，可設定位置、起始號碼與格式（支援中文格式）。')
+    + sec('', `<label class="chk"><input type="checkbox" data-bind="pn.on"><b>匯出時加入頁碼</b></label>`)
+    + sec('格式', `<div class="fld">${sel('pn.fmt', [['{n}', '1'], ['第 {n} 頁', '第 1 頁'], ['{n} / {total}', '1 / 10'], ['第 {n} 頁，共 {total} 頁', '第 1 頁，共 10 頁'], ['- {n} -', '- 1 -'], ['Page {n} of {total}', 'Page 1 of 10'], ['custom', '自訂…']])}</div>
+      <label class="fld" id="pnCustom"><span>自訂格式（{n}=頁碼、{total}=總頁數）</span><input class="inp" data-bind="pn.custom"></label>
+      <div class="row"><label class="fld" style="flex:1"><span>起始編號</span><input class="inp" type="number" min="0" data-bind="pn.start"></label><label class="fld" style="flex:1"><span>顏色</span><input type="color" data-bind="pn.color"></label></div>`
+      + rng('pn.size', '字級', 6, 36, 1, 'pt') + rng('pn.margin', '距離邊緣', 6, 80, 1, 'pt') + chk('pn.bold', '粗體') + chk('pn.skipFirst', '首頁（封面）不編號'))
+    + sec('位置', `<div class="grid9" data-bind="pn.pos">${['tl', 'tc', 'tr', 'bl', 'bc', 'br'].map(v => `<button type="button" data-v="${v}"></button>`).join('')}</div>` + `<div style="margin-top:10px">${scopeSeg('pn.scope')}</div>`)
+    + sec('預覽', `<div class="preview-box"><canvas id="pvCanvas"></canvas></div>`)
+    + sec('', btn('export', '匯出含頁碼的 PDF', 'primary block', 'down')),
+
+  compare: () => {
+    const l = cmpDocList();
+    return head('compare', '比較 PDF', '並排同步捲動檢視兩份文件，或擷取文字逐字比對差異。')
+      + sec('', `<p class="note">${l.length >= 2 ? `目前有 ${l.length} 份 PDF 可比較。` : '請在工作台加入兩份 PDF，或在比較畫面中直接開啟其他檔案（不會加入工作台）。'}</p><div class="row" style="margin-top:10px">${btn('openCmp', '開啟比較檢視', 'primary', 'compare')}</div>`)
+      + sec('說明', `<ul class="tips"><li><b>並排檢視</b>：兩欄同步捲動，適合比對版面。</li><li><b>文字差異</b>：逐行比對，修改處以<ins style="background:#dcfae6;text-decoration:none">綠色</ins>／<del style="background:#fde2e1">紅色</del>標示；中文逐字比對。</li><li>掃描影像型 PDF 沒有文字層，僅能並排檢視。</li></ul>`);
+  },
+
+  form: () => {
+    const srcs = [...S.sources.values()].filter(s => s.type === 'pdf');
+    const withForm = srcs.filter(s => s.hasForm);
+    let h = head('form', 'PDF 表單', '讀取 PDF 內既有的可填寫欄位，在此填寫或勾選後匯出。');
+    if (!srcs.length) return h + sec('', '<p class="note">請先加入含表單欄位的 PDF。</p>');
+    h += sec('選擇檔案', `<select class="inp" id="formSrc">${srcs.map(s => `<option value="${s.id}" ${FORM.srcId === s.id ? 'selected' : ''}>${esc(s.name)}${s.hasForm ? '' : '（未偵測到欄位）'}</option>`).join('')}</select>`);
+    if (!FORM.fields) return h + sec('', withForm.length ? '<p class="note">讀取欄位中…</p>' : '<p class="note">目前的檔案未偵測到可填寫的表單欄位。</p>');
+    if (!FORM.fields.length) return h + sec('', '<p class="note">此檔案沒有可填寫的欄位。</p>');
+    h += sec(`欄位（${FORM.fields.length}）`, `<div class="fieldlist">${FORM.fields.map((f, i) => {
+      const lab = `<span>${esc(f.name)}${f.page ? ` <small>第 ${f.page} 頁</small>` : ''}</span>`, dis = f.ro ? 'disabled' : '';
+      if (f.kind === 'text') return `<label class="fld">${lab}${f.multiline ? `<textarea class="inp" data-fi="${i}" ${dis}>${esc(f.value)}</textarea>` : `<input class="inp" data-fi="${i}" value="${esc(f.value)}" ${dis}>`}</label>`;
+      if (f.kind === 'check') return `<label class="chk"><input type="checkbox" data-fi="${i}" ${f.value ? 'checked' : ''} ${dis}>${esc(f.name)}${f.page ? ` <small style="color:var(--muted)">第 ${f.page} 頁</small>` : ''}</label>`;
+      return `<label class="fld">${lab}<select class="inp" data-fi="${i}" ${dis}><option value="">（未選擇）</option>${f.options.map(o => `<option ${o === f.value ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+    }).join('')}</div>`);
+    h += sec('', chk('formFlatten', '扁平化（將填寫內容固定為頁面內容，任何閱讀器都能正確顯示中文，但無法再修改）') + `<div style="height:8px"></div>` + btn('formExport', '填寫完成並下載', 'primary block', 'down'));
+    return h;
+  },
+};
+S.cropPad = 6;
+S.cropScope = 'all';
+S.sigRemoveBg = true;
+S.formFlatten = false;
+S.panelCollapsed = false;
+
+/* 面板渲染後的額外繫結 */
+const POST = {
+  split: p => {
+    const draw = () => {
+      const m = S.split.mode, o = $('#splitOpt', p);
+      o.innerHTML = m === 'selected' ? `<p class="note">將工作台中已選取的頁面 ${selCount()} 合併成一個新的 PDF。</p>`
+        : m === 'each' ? `<p class="note">每一頁各存成一個 PDF，打包成 ZIP 下載（共 ${S.pages.length} 個檔案）。</p>`
+          : m === 'ranges' ? `<label class="fld"><span>頁碼範圍（每個範圍一個檔案）</span><input class="inp" data-bind="split.ranges" placeholder="例如：1-3, 4-6, 7, 8-"></label><p class="note">以逗號分隔；「8-」代表第 8 頁到最後一頁。頁碼依工作台目前順序。</p>`
+            : `<label class="fld"><span>每幾頁拆成一個檔案</span><input class="inp" type="number" min="1" data-bind="split.every"></label>`;
+      bindPanel(o); updateSelCount();
+    };
+    draw(); p.querySelector('[data-bind="split.mode"]').addEventListener('click', () => setTimeout(draw));
+  },
+  toimg: p => {
+    const f = () => { $('#toimgQ', p).hidden = S.toimg.fmt !== 'jpg'; };
+    f();
+    p.querySelector('[data-bind="toimg.fmt"]').addEventListener('click', () => setTimeout(f));
+  },
+  watermark: p => {
+    const body = () => {
+      const b = $('#wmBody', p);
+      b.innerHTML = S.wm.type === 'text'
+        ? `<label class="fld"><span>浮水印文字</span><input class="inp" data-bind="wm.text"></label>${rng('wm.size', '字級', 10, 200, 1, 'pt')}<div class="row"><input type="color" data-bind="wm.color">${chk('wm.bold', '粗體')}${chk('wm.serif', '明體')}</div>`
+        : `<div class="row">${btn('wmPickImg', S.wm.asset ? '更換圖片' : '選擇圖片', '', 'image')}</div>${rng('wm.imgScale', '寬度（佔頁寬）', 0.05, 1, 0.01, '%')}`;
+      bindPanel(b, () => schedulePreview());
+    };
+    body(); p.querySelector('[data-bind="wm.type"]').addEventListener('click', () => setTimeout(body));
+    schedulePreview();
+  },
+  pagenum: p => {
+    const f = () => $('#pnCustom', p).hidden = S.pn.fmt !== 'custom'; f();
+    p.querySelector('[data-bind="pn.fmt"]').addEventListener('change', f);
+    schedulePreview();
+  },
+  form: p => {
+    $('#formSrc', p)?.addEventListener('change', e => formLoad(e.target.value));
+    p.querySelectorAll('[data-fi]').forEach(el => el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', () => {
+      const f = FORM.fields[+el.dataset.fi]; f.value = el.type === 'checkbox' ? el.checked : el.value; f.dirty = true;
+    }));
+    if (!FORM.fields && $('#formSrc', p)) formLoad($('#formSrc', p).value);
+  },
+};
+const PANEL_CHANGE = {
+  fromimg: () => relayoutImages(),
+  watermark: () => schedulePreview(),
+  pagenum: () => schedulePreview(),
+  compress: p => {
+    // 手動調整 DPI／品質時切換為「自訂」
+    if (p === 'cmp.dpi' || p === 'cmp.q') {
+      S.cmp.preset = 'custom';
+      $$('.preset').forEach(b => b.classList.toggle('on', b.dataset.v === 'custom'));
+    }
+  },
+};
+function renderPanel() {
+  const p = $('#panel');
+  const st = p.scrollTop;
+  p.innerHTML = (PANELS[S.tool] || PANELS.organize)();
+  bindPanel(p, PANEL_CHANGE[S.tool]);
+  POST[S.tool] && POST[S.tool](p);
+  applyPanelCollapse();
+  updateSelCount();
+  $$('.tbtn').forEach(b => b.classList.toggle('on', b.dataset.tool === S.tool));
+  p.scrollTop = st;
+}
+/** 手機直向（≤760px）可收起設定面板，讓縮圖區有更多空間 */
+function applyPanelCollapse() {
+  const p = $('#panel');
+  p.classList.toggle('collapsed', S.panelCollapsed);
+  const b = $('.panel-toggle', p);
+  if (b) b.setAttribute('aria-expanded', String(!S.panelCollapsed));
+}
+function setTool(id) {
+  const changed = S.tool !== id;
+  S.tool = id;
+  if (changed) S.panelCollapsed = false; // 切換工具時自動展開面板
+  renderPanel();
+  if (changed) $('#panel').scrollTop = 0;
+  if (id === 'compare' && cmpDocList().length >= 2) openCompare();
+}
+function onSelectionChange() {
+  updateSelCount();
+  if (S.tool === 'watermark' || S.tool === 'pagenum') schedulePreview();
+}
+
+/* ---------------- 面板動作 ---------------- */
+const ACTIONS = {
+  togglePanel: () => { S.panelCollapsed = !S.panelCollapsed; applyPanelCollapse(); },
+  add: () => $('#fileInput').click(),
+  export: () => openExportDialog(),
+  rmSrc: async b => {
+    const s = S.sources.get(b.dataset.id);
+    const ok = await modal({
+      title: '移除檔案',
+      body: `<p>確定要從工作台移除「${esc(s.name)}」的所有頁面嗎？（此動作會清除復原紀錄）</p>`,
+      ok: '移除', danger: true,
+    });
+    if (ok) removeSource(s.id);
+  },
+  selAll: () => { S.pages.forEach(p => S.sel.add(p.id)); refreshSelection(); },
+  selNone: () => { S.sel.clear(); refreshSelection(); },
+  selInv: () => { S.pages.forEach(p => S.sel.has(p.id) ? S.sel.delete(p.id) : S.sel.add(p.id)); refreshSelection(); },
+  selOdd: () => { S.sel = new Set(S.pages.filter((p, i) => i % 2 === 0).map(p => p.id)); refreshSelection(); },
+  selEven: () => { S.sel = new Set(S.pages.filter((p, i) => i % 2 === 1).map(p => p.id)); refreshSelection(); },
+  rotl: () => needSel() && rotatePages(selectedPages(), -90),
+  rotr: () => needSel() && rotatePages(selectedPages(), 90),
+  rot180: () => needSel() && rotatePages(selectedPages(), 180),
+  rotReset: () => { if (needSel()) { selectedPages().forEach(p => p.rot = 0); commit(); renderGrid(); } },
+  rotAllL: () => rotatePages(S.pages, -90),
+  rotAllR: () => rotatePages(S.pages, 90),
+  rotPortrait: () => {
+    const l = S.pages.filter(p => { const g = geo(p); return g.dw > g.dh; });
+    if (!l.length) return toast('沒有橫向頁面');
+    rotatePages(l, 90);
+    toast(`已轉正 ${l.length} 頁`);
+  },
+  dup: () => needSel() && duplicatePages(selectedPages()),
+  del: () => needSel() && deletePages(selectedPages()),
+  toStart: () => needSel() && movePages(selectedPages(), 'start'),
+  toEnd: () => needSel() && movePages(selectedPages(), 'end'),
+  blank: () => insertBlank(),
+  reverse: () => { S.pages.reverse(); commit(); renderGrid(); },
+  runSplit: () => runSplit(),
+  cropOpen: () => openEditor(null, 'crop'),
+  cropAuto: () => autoCrop(scopePages(S.cropScope), S.cropPad),
+  cropClrSel: () => { if (needSel()) { selectedPages().forEach(p => p.crop = null); commit(); renderGrid(); } },
+  cropClrAll: () => { S.pages.forEach(p => p.crop = null); commit(); renderGrid(); },
+  runToImg: () => runToImg(),
+  addImgs: async () => { const f = await pickFiles('image/*,.heic,.heif'); if (f.length) addFiles(f); },
+  exportImgs: () => {
+    const l = S.pages.filter(p => S.sources.get(p.src).type === 'image');
+    if (!l.length) return toast('工作台中沒有圖片頁', 'warn');
+    exportPdf(l, effectOpts(), `${baseName()}_images.pdf`);
+  },
+  cmpPreset: b => {
+    const v = b.dataset.v, P = { light: [200, 0.85], balanced: [150, 0.72], strong: [100, 0.55] };
+    S.cmp.preset = v; if (P[v]) [S.cmp.dpi, S.cmp.q] = P[v];
+    saveSettings(); renderPanel();
+  },
+  runCompress: () => runCompress(),
+  openEd: () => openEditor(null, 'select'),
+  newSig: async () => { const id = await openSigPad(); if (id) { S.pendingAsset = id; renderPanel(); } },
+  upSig: async () => { const f = await pickFiles('image/*', false); if (f[0]) { const id = await uploadSig(f[0]); if (id) { S.pendingAsset = id; renderPanel(); } } },
+  useSig: (b, e) => { if (e.target.closest('.x')) return; S.pendingAsset = b.dataset.id; renderPanel(); },
+  rmSig: b => {
+    const id = b.dataset.id;
+    S.sigs = S.sigs.filter(s => s.id !== id);
+    if (S.pendingAsset === id) S.pendingAsset = null;
+    // 仍有頁面（或復原紀錄）使用這個簽名時保留影像資料，否則立即釋放
+    if (!assetInUse(id)) releaseAsset(id);
+    persistSigs();
+    renderPanel();
+  },
+  placeSig: () => {
+    if (!S.sigs.length) return toast('請先手寫或上傳簽名', 'warn');
+    if (!S.pendingAsset) S.pendingAsset = S.sigs[S.sigs.length - 1].id;
+    openEditor(null, 'sign');
+  },
+  openRdx: () => openEditor(null, 'redact'),
+  rdxPreset: b => { S.rdx.query = b.dataset.re; S.rdx.regex = true; renderPanel(); },
+  rdxSearch: () => redactSearch(),
+  rdxClear: () => { S.pages.forEach(p => p.redacts = []); commit(); renderAll(); },
+  wmPickImg: async () => {
+    const f = await pickFiles('image/*', false);
+    if (!f[0]) return;
+    const old = S.wm.asset;
+    S.wm.asset = (await makeAsset(f[0])).id;
+    S.wm.on = true;
+    if (old && !assetInUse(old)) releaseAsset(old); // 換圖時釋放舊的浮水印圖片
+    renderPanel();
+  },
+  openCmp: () => openCompare(),
+  formExport: () => formExport(),
+};
+
+async function runSplit() {
+  const b = baseName(), m = S.split.mode, n = S.pages.length, pad = i => String(i).padStart(String(n).length, '0');
+  let groups = [];
+  if (m === 'selected') { if (!needSel()) return; groups = [{ items: selectedPages(), name: `${b}_擷取.pdf` }]; }
+  else if (m === 'each') groups = S.pages.map((p, i) => ({ items: [p], name: `${b}_p${pad(i + 1)}.pdf` }));
+  else if (m === 'ranges') {
+    for (const part of String(S.split.ranges).split(/[,，;；\s]+/).filter(Boolean)) {
+      const mm = part.match(/^(\d+)(?:\s*[-–~～]\s*(\d*))?$/);
+      if (!mm) return toast(`無法解析範圍「${part}」`, 'warn');
+      const a = +mm[1], z = mm[2] === undefined ? a : mm[2] === '' ? n : +mm[2];
+      if (a < 1 || z > n || a > z) return toast(`範圍「${part}」超出 1–${n}`, 'warn');
+      groups.push({ items: S.pages.slice(a - 1, z), name: `${b}_p${a}${z > a ? '-' + z : ''}.pdf` });
+    }
+    if (!groups.length) return toast('請輸入頁碼範圍', 'warn');
+  } else {
+    const k = Math.max(1, Math.floor(S.split.every || 1));
+    for (let i = 0; i < n; i += k) groups.push({ items: S.pages.slice(i, i + k), name: `${b}_p${i + 1}-${Math.min(n, i + k)}.pdf` });
+  }
+  const pr = busy('拆分中…'), cache = new Map(), files = [];
+  try {
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[i];
+      files.push({ name: g.name, data: await buildPdf(g.items, { ...effectOpts(), libCache: cache }, p => pr.set((i + p) / groups.length, `產生檔案 ${i + 1} / ${groups.length}`)) });
+    }
+    if (files.length === 1) saveBlob(new Blob([files[0].data], { type: 'application/pdf' }), files[0].name);
+    else { pr.set(1, '打包 ZIP…'); await zipAndSave(files, `${b}_split.zip`); }
+    toast(`完成，共 ${files.length} 個檔案`);
+  } catch (e) { console.error(e); toast('拆分失敗：' + (e.message || e), 'err', 6000); }
+  finally { cache.clear(); pr.done(); }
+}
+async function autoCrop(list, padPt) {
+  if (!list.length) return;
+  const pr = busy('偵測白邊…'); let n = 0;
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i], g = geo(it), c = await renderItem(it, 800 / Math.max(g.W, g.H), 0);
+      const { width: w, height: h } = c, d = c.getContext('2d').getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const k = (y * w + x) * 4; if (d[k] < 238 || d[k + 1] < 238 || d[k + 2] < 238) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+      freeCanvas(c);
+      if (x1 > x0 && y1 > y0) {
+        const px = padPt / g.W, py = padPt / g.H;
+        it.crop = { x0: clamp(x0 / w - px, 0, 1), x1: clamp((x1 + 1) / w + px, 0, 1), y0: clamp(1 - (y1 + 1) / h - py, 0, 1), y1: clamp(1 - y0 / h + py, 0, 1) };
+        n++;
+      }
+      pr.set((i + 1) / list.length, `偵測白邊 ${i + 1} / ${list.length}`);
+    }
+  } finally { pr.done(); }
+  commit(); renderGrid(); if (ED.open) edRefresh(); toast(`已裁剪 ${n} 頁`);
+}
+async function runToImg() {
+  const cfg = S.toimg, items = scopePages(cfg.scope);
+  if (!items.length) return;
+  const type = cfg.fmt === 'png' ? 'image/png' : 'image/jpeg', ext = cfg.fmt === 'png' ? 'png' : 'jpg', b = baseName();
+  const pad = i => String(i).padStart(String(items.length).length, '0');
+  const pr = busy('轉換圖片中…'), files = [];
+  const eff = effectOpts();
+  const needBuild = cfg.edits && (eff.wm || eff.pn || items.some(p => p.annots.length || p.redacts.length || p.crop));
+  try {
+    if (needBuild) {
+      const bytes = await buildPdf(items, eff, p => pr.set(p * 0.3, '套用編輯效果…'));
+      const doc = await pdfjsOpen(await getPdfjs(), bytes, 'tmp');
+      for (let i = 0; i < doc.numPages; i++) {
+        const page = await doc.getPage(i + 1);
+        let vp = page.getViewport({ scale: cfg.dpi / 72 }); const k = capScale(vp.width, vp.height); if (k < 1) vp = page.getViewport({ scale: cfg.dpi / 72 * k });
+        const c = mkCanvas(vp.width, vp.height), x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: x, viewport: vp, intent: 'print' }).promise;
+        files.push({ name: `${b}_p${pad(i + 1)}.${ext}`, data: await canvasToBlob(c, type, cfg.q) }); freeCanvas(c); page.cleanup();
+        pr.set(0.3 + 0.65 * (i + 1) / doc.numPages, `轉換第 ${i + 1} / ${doc.numPages} 頁`);
+      }
+      doc.destroy();
+    } else {
+      for (let i = 0; i < items.length; i++) {
+        const c = await renderItem(items[i], cfg.dpi / 72, geo(items[i]).R, { print: true, full: true });
+        files.push({ name: `${b}_p${pad(i + 1)}.${ext}`, data: await canvasToBlob(c, type, cfg.q) }); freeCanvas(c);
+        pr.set(0.95 * (i + 1) / items.length, `轉換第 ${i + 1} / ${items.length} 頁`);
+      }
+    }
+    if (files.length === 1) saveBlob(files[0].data, files[0].name);
+    else { pr.set(0.97, '打包 ZIP…'); await zipAndSave(files, `${b}_images.zip`); }
+    toast(`已匯出 ${files.length} 張圖片`);
+  } catch (e) { console.error(e); toast('轉換失敗：' + (e.message || e), 'err', 6000); }
+  finally { pr.done(); }
+}
+async function runCompress() {
+  if (!S.pages.length) return toast('請先加入 PDF', 'warn');
+  const cfg = { dpi: S.cmp.dpi, q: S.cmp.q, stripMeta: S.cmp.stripMeta, deflate: S.cmp.deflate };
+  const ps = pristineSource(), eff = effectOpts(), pr = busy('壓縮中…');
+  try {
+    let bytes, st, before;
+    if (ps && !eff.wm && !eff.pn) {
+      const L = await getPdfLib();
+      const doc = await L.PDFDocument.load(ps.bytes, { ignoreEncryption: true, updateMetadata: false });
+      if (doc.isEncrypted) throw new Error('此檔案已加密，無法在保留文字層的前提下壓縮');
+      st = await compressDoc(doc, cfg, (p, m) => pr.set(p * 0.9, m));
+      pr.set(0.95, '寫入檔案…'); bytes = await doc.save({ useObjectStreams: true }); before = ps.size;
+    } else {
+      const r = await buildPdf(S.pages, { ...eff, compress: cfg, stripMeta: cfg.stripMeta, withStats: true }, (p, m) => pr.set(p, m));
+      bytes = r.bytes; st = r.stats; before = [...new Set(S.pages.map(p => p.src))].reduce((a, id) => a + (S.sources.get(id).size || 0), 0);
+    }
+    const after = bytes.length, saved = before - after, pct = before ? saved / before : 0;
+    const name = `${baseName()}_compressed.pdf`, blob = new Blob([bytes], { type: 'application/pdf' });
+    $('#cmpResult').innerHTML = `<div class="result"><div class="big">${saved > 0 ? '−' + Math.round(pct * 100) + '%' : '無法再縮小'}</div>
+      <div style="color:var(--muted);font-size:13px">${fmtSize(before)} → <b style="color:var(--ink)">${fmtSize(after)}</b></div>
+      <div class="bar"><i style="width:${clamp(after / Math.max(before, 1) * 100, 2, 100)}%"></i></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:8px 0 0">內嵌圖片 ${st.images} 張，重新編碼 ${st.recompressed} 張${st.recompressed ? `（圖片 ${fmtSize(st.imgBefore)} → ${fmtSize(st.imgAfter)}）` : ''}；無損壓縮串流 ${st.streams} 個。文字層已完整保留。</p>
+      ${saved > 0 ? '' : `<div class="row" style="margin-top:8px"><button class="btn sm" id="dlAnyway">仍要下載</button></div>`}</div>`;
+    $('#dlAnyway')?.addEventListener('click', () => saveBlob(blob, name));
+    if (saved > 0) saveBlob(blob, name);
+  } catch (e) { console.error(e); toast('壓縮失敗：' + (e.message || e), 'err', 6000); }
+  finally { pr.done(); }
+}
+
+/* ---------------- 密文：關鍵字搜尋 ---------------- */
+async function redactSearch() {
+  const q = S.rdx.query.trim(); if (!q) return toast('請輸入搜尋文字', 'warn');
+  let re;
+  try { re = S.rdx.regex ? new RegExp(q, 'g') : new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'); }
+  catch { return toast('正規表示式格式錯誤', 'err'); }
+  const list = scopePages(S.rdx.scope).filter(p => S.sources.get(p.src).type === 'pdf');
+  const pr = busy('搜尋中…'); let hits = 0, pagesHit = 0;
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i], s = S.sources.get(it.src), g = s.pages[it.idx];
+      const page = await s.doc.getPage(it.idx + 1), tc = await page.getTextContent();
+      let full = ''; const map = [];
+      tc.items.forEach((t, ti) => { if (typeof t.str !== 'string') return; for (let c = 0; c < t.str.length; c++) map.push([ti, c]); full += t.str; });
+      re.lastIndex = 0; let m, found = 0;
+      while ((m = re.exec(full))) {
+        if (!m[0].length) { re.lastIndex++; continue; }
+        const segs = new Map();
+        for (let k = m.index; k < m.index + m[0].length; k++) { const [ti, c] = map[k]; if (!segs.has(ti)) segs.set(ti, [c, c]); else segs.get(ti)[1] = c; }
+        for (const [ti, [c0, c1]] of segs) {
+          const t = tc.items[ti], r = textRect(t, c0, c1);
+          if (r) { it.redacts.push({ id: uid('r'), x: r.x - g.vx, y: r.y - g.vy, w: r.w, h: r.h }); found++; }
+        }
+      }
+      if (found) { pagesHit++; hits += found; }
+      pr.set((i + 1) / list.length, `搜尋第 ${i + 1} / ${list.length} 頁`);
+    }
+  } catch (e) { console.error(e); toast('搜尋失敗：' + e.message, 'err'); }
+  finally { pr.done(); }
+  if (hits) { commit(); renderGrid(); }
+  const box = $('#rdxResult');
+  if (box) box.innerHTML = hits ? `<p class="note ok">在 ${pagesHit} 頁找到並標記了 ${hits} 處。請在縮圖或編輯器中確認位置。</p>` : `<p class="note">找不到符合的文字（掃描影像型 PDF 沒有文字層，請改用手動框選）。</p>`;
+  if (hits) renderPanel();
+}
+/** 依字元權重估算文字項目中第 c0~c1 字的位置（使用者空間） */
+function textRect(t, c0, c1) {
+  const [a, b, c, d, e, f] = t.transform, fs = Math.hypot(c, d) || t.height || 10;
+  const wOf = ch => /[⺀-￯]/.test(ch) ? 1 : /[A-Z0-9@#%&WM]/.test(ch) ? 0.66 : /[il.,:;'|!\s]/.test(ch) ? 0.3 : 0.55;
+  const ws = [...t.str].map(wOf), tot = ws.reduce((x, y) => x + y, 0) || 1;
+  const pre = ws.slice(0, c0).reduce((x, y) => x + y, 0) / tot, len = ws.slice(c0, c1 + 1).reduce((x, y) => x + y, 0) / tot;
+  const W = t.width || fs * t.str.length * 0.6, pad = fs * 0.12;
+  if (Math.abs(b) < 1e-3 && Math.abs(c) < 1e-3) {
+    const sx = Math.sign(a) || 1;
+    const x = sx > 0 ? e + W * pre : e - W * (pre + len);
+    return { x: x - pad, y: f - fs * 0.25 - pad, w: W * len + pad * 2, h: fs * 1.2 + pad * 2 };
+  }
+  // 旋轉或直排文字：保守地遮住整個文字項目
+  const ang = Math.atan2(b, a), cs = Math.cos(ang), sn = Math.sin(ang);
+  const pts = [[0, -fs * 0.25], [W, -fs * 0.25], [0, fs], [W, fs]].map(([px, py]) => [e + px * cs - py * sn, f + px * sn + py * cs]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  return { x: Math.min(...xs) - pad, y: Math.min(...ys) - pad, w: Math.max(...xs) - Math.min(...xs) + pad * 2, h: Math.max(...ys) - Math.min(...ys) + pad * 2 };
+}
+
+/* ---------------- 浮水印 / 頁碼 預覽 ---------------- */
+let _pvRaf = 0; const PV = { key: null, bmp: null };
+function schedulePreview() { cancelAnimationFrame(_pvRaf); _pvRaf = requestAnimationFrame(drawPreview); }
+async function drawPreview() {
+  const cv = $('#pvCanvas'); if (!cv) return;
+  const it = S.sel.size ? selectedPages()[0] : S.pages[0];
+  const x = cv.getContext('2d');
+  if (!it) { cv.width = 200; cv.height = 120; x.fillStyle = '#999'; x.font = `13px ${FONT_SANS}`; x.fillText('加入檔案後顯示預覽', 30, 64); return; }
+  const g = geo(it), k = Math.min(300 / g.dw, 300 / g.dh) * DPR();
+  const key = thumbKey(it) + '|' + k.toFixed(3);
+  if (PV.key !== key) { const c = await renderItem(it, k, g.R); if (PV.bmp) freeCanvas(PV.bmp); PV.bmp = c; PV.key = key; }
+  const base = PV.bmp; cv.width = base.width; cv.height = base.height;
+  cv.style.width = base.width / DPR() + 'px';
+  x.drawImage(base, 0, 0);
+  const s = base.width / g.dw;
+  const r = regionS(it, g), toPx = (sx, sy) => [sx * s, (g.dh - sy) * s];
+  if (it.crop) {
+    // 裁剪範圍外以半透明遮罩顯示
+    const v = visibleD(it, g);
+    x.fillStyle = 'rgba(0,0,0,.35)';
+    x.fillRect(0, 0, cv.width, cv.height);
+    x.drawImage(base, v.x * s, v.y * s, v.w * s, v.h * s, v.x * s, v.y * s, v.w * s, v.h * s);
+  }
+  if (S.tool === 'watermark') {
+    const cfg = S.wm; let w, h, draw;
+    if (cfg.type === 'image' && cfg.asset && S.assets.has(cfg.asset)) {
+      const a = S.assets.get(cfg.asset); w = r.w * cfg.imgScale; h = w * a.h / a.w;
+      const img = PV.wmImg?.src === a.url ? PV.wmImg : Object.assign(new Image(), { src: a.url });
+      PV.wmImg = img; if (!img.complete) { img.onload = schedulePreview; return; }
+      draw = () => x.drawImage(img, -w * s / 2, -h * s / 2, w * s, h * s);
+    } else {
+      const a = { size: cfg.size, color: cfg.color, bold: cfg.bold, serif: cfg.serif }, m = measureText(cfg.text || ' ', a); w = m.w; h = m.h;
+      draw = () => {
+        x.font = fontCss(a, a.size * s);
+        x.fillStyle = a.color;
+        x.textBaseline = 'middle';
+        m.lines.forEach((l, i) => x.fillText(l, (-w / 2 + m.pad) * s, (-h / 2 + m.pad + a.size * LH * (i + .5)) * s));
+      };
+    }
+    x.save(); x.beginPath(); x.rect(r.x * s, (g.dh - r.y - r.h) * s, r.w * s, r.h * s); x.clip();
+    for (const [cx, cy] of wmPlacements(r, w, h, cfg)) {
+      const [px, py] = toPx(cx, cy);
+      x.save(); x.globalAlpha = cfg.opacity; x.translate(px, py); x.rotate(-cfg.angle * Math.PI / 180); draw(); x.restore();
+    }
+    x.restore();
+  } else if (S.tool === 'pagenum') {
+    const cfg = S.pn, plan = pnPlan(S.pages, cfg), n = plan.map.get(it.id);
+    if (n == null) { x.fillStyle = 'rgba(0,0,0,.55)'; x.font = `${12 * DPR()}px ${FONT_SANS}`; x.fillText('（此頁不編號）', 8 * DPR(), 18 * DPR()); return; }
+    const text = pnText(cfg, n, plan.total);
+    x.font = `${cfg.bold ? 700 : 400} ${cfg.size * s}px ${isLatin(text) ? 'Helvetica,Arial,sans-serif' : FONT_SANS}`;
+    x.fillStyle = cfg.color; x.textBaseline = 'alphabetic';
+    const tw = x.measureText(text).width / s, m = cfg.margin;
+    const sx = cfg.pos[1] === 'l' ? r.x + m : cfg.pos[1] === 'r' ? r.x + r.w - m - tw : r.x + (r.w - tw) / 2;
+    const sy = cfg.pos[0] === 'b' ? r.y + m : r.y + r.h - m - cfg.size * 0.72;
+    const [px, py] = toPx(sx, sy); x.fillText(text, px, py);
+  }
+}
+
+/* ---------------- 匯出對話框 ---------------- */
+async function openExportDialog() {
+  if (!S.pages.length) return;
+  const n = S.pages.length, ns = S.sel.size, rd = S.pages.filter(p => p.redacts.length).length;
+  let scope = 'all';
+  const r = await modal({
+    title: '匯出 PDF', ok: '匯出',
+    body: `<label class="fld"><span>檔名</span><input class="inp" id="exName" value="${esc(baseName())}_edited.pdf"></label>
+      <div class="fld"><span>範圍</span><div class="seg" id="exScope"><button data-v="all" class="on">全部頁面（${n}）</button><button data-v="sel" ${ns ? '' : 'disabled style="opacity:.4"'}>已選頁面（${ns}）</button></div></div>
+      <label class="chk"><input type="checkbox" id="exWm" ${S.wm.on ? 'checked' : ''}>套用浮水印 <small style="color:var(--muted)">（於「浮水印」設定）</small></label>
+      <label class="chk"><input type="checkbox" id="exPn" ${S.pn.on ? 'checked' : ''}>加入頁碼 <small style="color:var(--muted)">（於「頁碼」設定）</small></label>
+      <label class="chk"><input type="checkbox" id="exCmp">同時壓縮內嵌圖片（${S.cmp.dpi} DPI，保留文字層）</label>
+      ${rd ? `<p class="note warn" style="margin-top:10px">${rd} 頁含密文，這些頁面將以 ${S.rdx.dpi} DPI 影像輸出，並移除中繼資料。</p>` : ''}`,
+    onOpen: root => $('#exScope', root).addEventListener('click', e => {
+      const b = e.target.closest('[data-v]');
+      if (!b || b.disabled) return;
+      scope = b.dataset.v;
+      $$('#exScope button', root).forEach(x => x.classList.toggle('on', x === b));
+    }),
+    onOk: root => ({
+      name: $('#exName', root).value.trim() || 'document.pdf',
+      wm: $('#exWm', root).checked,
+      pn: $('#exPn', root).checked,
+      cmp: $('#exCmp', root).checked,
+    }),
+  });
+  if (!r) return;
+  const items = scope === 'sel' ? selectedPages() : S.pages;
+  const opt = {
+    wm: r.wm ? S.wm : null,
+    pn: r.pn ? S.pn : null,
+    compress: r.cmp ? { dpi: S.cmp.dpi, q: S.cmp.q, deflate: true } : null,
+  };
+  await exportPdf(items, opt, /\.pdf$/i.test(r.name) ? r.name : r.name + '.pdf');
+}
+
+/* =====================================================================
+   頁面編輯器
+   ===================================================================== */
+const ED = {
+  open: false, i: 0, tool: 'select', sel: null, act: null, tok: 0, task: null,
+  zoom: 1, fit: true, pencilOnly: false, pendingImg: null,
+  color: '#e03131', width: 2.5, fill: false,      // 畫筆與幾何圖形
+  hl: '#ffd43b', hlw: 14,                          // 螢光筆
+  text: { size: 16, color: '#111111', bold: false, serif: false, bg: false },
+};
+const ED_TOOLS = [
+  ['select', '選取', 'cursor'], ['text', '文字', 'text'], ['pen', '畫筆', 'pen'], ['hl', '螢光筆', 'hl'],
+  ['rect', '矩形', 'rect'], ['ellipse', '橢圓', 'ellipse'], ['line', '直線', 'line'], ['arrow', '箭頭', 'arrow'],
+  ['image', '圖片', 'image'], ['sign', '簽名', 'sign'], ['redact', '密文', 'redact'], ['crop', '裁剪', 'crop'],
+];
+const COLORS = ['#111111', '#e03131', '#1971c2', '#2f9e44', '#f08c00', '#7048e8', '#ffffff'];
+const HL_COLORS = ['#ffd43b', '#69db7c', '#ff8cc8', '#74c0fc', '#ffa94d'];
+const TYPE_NAMES = { rect: '矩形', ellipse: '橢圓', line: '直線', arrow: '箭頭', ink: '筆跡', text: '文字', image: '圖片' };
+const DRAW_TOOLS = new Set(['pen', 'hl', 'rect', 'ellipse', 'line', 'arrow', 'redact', 'crop']);
+const edItem = () => S.pages[ED.i];
+
+function openEditor(id, tool) {
+  if (!S.pages.length) return toast('請先加入檔案', 'warn');
+  const i = id ? pageIndex(id) : S.sel.size ? pageIndex(selectedPages()[0].id) : 0;
+  ED.i = Math.max(0, i); ED.open = true; ED.sel = null; ED.fit = true;
+  if (tool) ED.tool = tool;
+  $('#editor').hidden = false;
+  edTools(); requestAnimationFrame(edRefresh);
+}
+function closeEditor() { ED.open = false; ED.act = null; $('#editor').hidden = true; renderGrid(); renderPanel(); }
+function edGo(d) { const n = clamp(ED.i + d, 0, S.pages.length - 1); if (n !== ED.i) { ED.i = n; ED.sel = null; ED.fit = true; edRefresh(); } }
+function edTools() {
+  $('#edTools').innerHTML = ED_TOOLS.map(([id, l, ic]) => `<button class="etb ${ED.tool === id ? 'on' : ''}" data-t="${id}">${ICON(ic)}${l}</button>`).join('');
+  const pg = $('#edPage'); pg.className = 'ed-page ' + (DRAW_TOOLS.has(ED.tool) ? 'draw' : ED.tool === 'text' ? 'text' : ['image', 'sign'].includes(ED.tool) ? 'place' : '');
+}
+function edSetTool(t) { ED.tool = t; if (t !== 'select') ED.sel = null; edTools(); edDraw(); edProps(); }
+function edRefresh() {
+  if (!ED.open) return;
+  if (!S.pages.length) return closeEditor();
+  ED.i = clamp(ED.i, 0, S.pages.length - 1);
+  const it = edItem(); if (ED.sel && !it.annots.some(a => a.id === ED.sel)) ED.sel = null;
+  $('#edLbl').textContent = `${ED.i + 1} / ${S.pages.length}`;
+  $('#edPrev').disabled = ED.i === 0; $('#edNext').disabled = ED.i === S.pages.length - 1;
+  edLayout(); edRenderCanvas(); edDraw(); edProps(); updateUndoBtns();
+}
+function edLayout() {
+  const g = geo(edItem()), st = $('#edStage');
+  if (ED.fit) ED.zoom = clamp(Math.min((st.clientWidth - 48) / g.dw, (st.clientHeight - 48) / g.dh), 0.1, 6);
+  const pg = $('#edPage'); pg.style.width = g.dw * ED.zoom + 'px'; pg.style.height = g.dh * ED.zoom + 'px';
+  $('#edSvg').setAttribute('viewBox', `0 0 ${g.dw} ${g.dh}`);
+}
+let _edRenderTimer = 0;
+function edZoom(f) {
+  const st = $('#edStage'), cx = (st.scrollLeft + st.clientWidth / 2) / st.scrollWidth, cy = (st.scrollTop + st.clientHeight / 2) / st.scrollHeight;
+  ED.fit = f === 'fit'; if (!ED.fit) ED.zoom = clamp(ED.zoom * f, 0.15, 8);
+  edLayout(); edDraw();
+  st.scrollLeft = cx * st.scrollWidth - st.clientWidth / 2; st.scrollTop = cy * st.scrollHeight - st.clientHeight / 2;
+  clearTimeout(_edRenderTimer); _edRenderTimer = setTimeout(edRenderCanvas, 180);
+}
+async function edRenderCanvas() {
+  const tok = ++ED.tok, it = edItem(), g = geo(it);
+  try { ED.task && ED.task.cancel(); } catch { }
+  try {
+    const c = await renderItem(it, ED.zoom * DPR(), g.R, { full: true, onTask: t => ED.task = t });
+    if (tok !== ED.tok || !ED.open) { freeCanvas(c); return; }
+    const old = $('#edCanvas'); c.id = 'edCanvas'; old.replaceWith(c); freeCanvas(old);
+  } catch (e) { if (e?.name !== 'RenderingCancelledException') console.warn(e); }
+}
+function edDraw() {
+  if (!ED.open) return;
+  const it = edItem(), g = geo(it);
+  let s = overlayContent(it, g, { interactive: true, zoom: ED.zoom });
+  const a = ED.sel && it.annots.find(x => x.id === ED.sel);
+  if (a) {
+    const z = ED.zoom, bb = annotBBoxFrame(a), d = rectMap(frameToD(a, g), bb.x, bb.y, bb.w, bb.h), p = 4 / z;
+    s += `<g id="edSel"><rect x="${d.x - p}" y="${d.y - p}" width="${d.w + 2 * p}" height="${d.h + 2 * p}" fill="none" stroke="#2563eb" stroke-width="${1.5 / z}" stroke-dasharray="${5 / z} ${3 / z}"/>`
+      + edHandles(a, g).map(h => `<circle cx="${h.p[0]}" cy="${h.p[1]}" r="${(IS_TOUCH ? 9 : 6) / z}" fill="#fff" stroke="#2563eb" stroke-width="${2 / z}"/>`).join('') + '</g>';
+  }
+  $('#edSvg').innerHTML = s + '<g id="edTemp"></g>';
+}
+function edHandles(a, g) {
+  const T = frameToD(a, g);
+  if (a.type === 'line' || a.type === 'arrow') return [{ k: 'p1', p: Mx.ap(T, a.x1, a.y1) }, { k: 'p2', p: Mx.ap(T, a.x2, a.y2) }];
+  if (a.type === 'ink') return [];
+  return [{ k: 'br', p: Mx.ap(T, a.x + a.w, a.y + a.h) }];
+}
+/** 點到線段距離 */
+function distSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy;
+  const t = l ? clamp(((px - x1) * dx + (py - y1) * dy) / l, 0, 1) : 0;
+  return Math.hypot(px - x1 - t * dx, py - y1 - t * dy);
+}
+/** 以幾何方式判斷點選到哪個標註（不依賴 SVG 命中測試，觸控更穩定） */
+function edHit(u, v) {
+  const it = edItem(), g = geo(it), tol = (IS_TOUCH ? 14 : 8) / ED.zoom;
+  if (ED.sel) {
+    const a = it.annots.find(x => x.id === ED.sel);
+    if (a) {
+      for (const h of edHandles(a, g)) {
+        if (Math.hypot(h.p[0] - u, h.p[1] - v) < tol * 1.3) return { a, handle: h.k };
+      }
+    }
+  }
+  for (let i = it.annots.length - 1; i >= 0; i--) {
+    const a = it.annots[i];
+    const [fx, fy] = Mx.ap(Mx.inv(frameToD(a, g)), u, v);
+    if (a.type === 'line' || a.type === 'arrow') {
+      if (distSeg(fx, fy, a.x1, a.y1, a.x2, a.y2) < Math.max(tol, a.width)) return { a };
+      continue;
+    }
+    if (a.type === 'ink') {
+      for (let k = 0; k < a.pts.length - 1 || k === 0; k++) {
+        const p = a.pts[k], q = a.pts[k + 1] || p;
+        if (distSeg(fx, fy, p[0], p[1], q[0], q[1]) < Math.max(tol, a.width / 2 + 2)) return { a };
+      }
+      continue;
+    }
+    const bb = annotBBoxFrame(a);
+    if (fx >= bb.x - tol && fx <= bb.x + bb.w + tol && fy >= bb.y - tol && fy <= bb.y + bb.h + tol) return { a };
+  }
+  return null;
+}
+/** 指標位置 → 目前顯示方向下的頁面座標（pt） */
+function edPt(e) {
+  const r = $('#edPage').getBoundingClientRect(), g = geo(edItem());
+  return [(e.clientX - r.left) / r.width * g.dw, (e.clientY - r.top) / r.height * g.dh];
+}
+function moveAnnot(a, du, dv, g) {
+  const Ti = Mx.inv(frameToD(a, g)), fx = Ti[0] * du + Ti[2] * dv, fy = Ti[1] * du + Ti[3] * dv;
+  if (a.type === 'line' || a.type === 'arrow') { a.x1 += fx; a.x2 += fx; a.y1 += fy; a.y2 += fy; }
+  else if (a.type === 'ink') a.pts = a.pts.map(p => [p[0] + fx, p[1] + fy]);
+  else { a.x += fx; a.y += fy; }
+}
+function edApplyHandle(A, u, v) {
+  const g = geo(edItem()), a = A.a, o = A.orig, [fx, fy] = Mx.ap(Mx.inv(frameToD(a, g)), u, v);
+  if (A.handle === 'p1') { a.x1 = fx; a.y1 = fy; return; }
+  if (A.handle === 'p2') { a.x2 = fx; a.y2 = fy; return; }
+  const w = Math.max(6, fx - o.x);
+  a.w = w; a.h = (a.type === 'text' || a.type === 'image') ? w * o.h / o.w : Math.max(6, fy - o.y);
+}
+function edTemp(A) {
+  const t = $('#edTemp'); if (!t) return;
+  const [u0, v0] = A.pts[0], [u1, v1] = A.pts[A.pts.length - 1], x = Math.min(u0, u1), y = Math.min(v0, v1), w = Math.abs(u1 - u0), h = Math.abs(v1 - v0), z = ED.zoom;
+  let s = '';
+  switch (A.tool) {
+    case 'pen': s = `<path d="${inkPath(A.pts)}" fill="none" stroke="${ED.color}" stroke-width="${ED.width}" stroke-linecap="round" stroke-linejoin="round"/>`; break;
+    case 'hl': s = `<path d="${inkPath(A.pts)}" fill="none" stroke="${ED.hl}" stroke-opacity=".4" stroke-width="${ED.hlw}" stroke-linejoin="round" style="mix-blend-mode:multiply"/>`; break;
+    case 'rect': s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ED.fill ? ED.color : 'none'}" stroke="${ED.fill ? 'none' : ED.color}" stroke-width="${ED.width}"/>`; break;
+    case 'ellipse': s = `<ellipse cx="${x + w / 2}" cy="${y + h / 2}" rx="${w / 2}" ry="${h / 2}" fill="${ED.fill ? ED.color : 'none'}" stroke="${ED.fill ? 'none' : ED.color}" stroke-width="${ED.width}"/>`; break;
+    case 'line': case 'arrow': s = annotInner({ type: A.tool, x1: u0, y1: v0, x2: u1, y2: v1, color: ED.color, width: ED.width }); break;
+    case 'redact': s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#000" fill-opacity=".8"/>`; break;
+    case 'crop': s = `<path fill="rgba(14,16,20,.5)" fill-rule="evenodd" d="M0 0H${geo(edItem()).dw}V${geo(edItem()).dh}H0Z M${x} ${y}h${w}v${h}h${-w}Z"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#fff" stroke-width="${1.5 / z}" stroke-dasharray="${5 / z} ${4 / z}"/>`; break;
+  }
+  t.innerHTML = s;
+}
+function edCommitDraw(A) {
+  const it = edItem(), g = geo(it), R = g.R;
+  const [u0, v0] = A.pts[0], [u1, v1] = A.pts[A.pts.length - 1];
+  const x = clamp(Math.min(u0, u1), 0, g.dw), y = clamp(Math.min(v0, v1), 0, g.dh), w = clamp(Math.max(u0, u1), 0, g.dw) - x, h = clamp(Math.max(v0, v1), 0, g.dh) - y;
+  const id = uid('a');
+  switch (A.tool) {
+    case 'pen': case 'hl':
+      it.annots.push({ id, type: 'ink', frame: R, pts: A.pts.map(p => [+p[0].toFixed(2), +p[1].toFixed(2)]), color: A.tool === 'hl' ? ED.hl : ED.color, width: A.tool === 'hl' ? ED.hlw : ED.width, opacity: 1, hl: A.tool === 'hl' }); break;
+    case 'rect': case 'ellipse':
+      if (w < 3 || h < 3) return edDraw();
+      it.annots.push({ id, type: A.tool, frame: R, x, y, w, h, color: ED.color, width: ED.width, fill: ED.fill, opacity: 1 }); break;
+    case 'line': case 'arrow':
+      if (Math.hypot(u1 - u0, v1 - v0) < 4) return edDraw();
+      it.annots.push({ id, type: A.tool, frame: R, x1: u0, y1: v0, x2: u1, y2: v1, color: ED.color, width: ED.width, opacity: 1 }); break;
+    case 'redact':
+      if (w < 2 || h < 2) return edDraw();
+      it.redacts.push({ id: uid('r'), ...dToB({ x, y, w, h }, g) }); break;
+    case 'crop': {
+      if (w < 12 || h < 12) return edDraw();
+      const b = dToB({ x, y, w, h }, g);
+      it.crop = { x0: b.x / g.W, y0: b.y / g.H, x1: (b.x + b.w) / g.W, y1: (b.y + b.h) / g.H }; break;
+    }
+  }
+  commit(); edDraw(); edCard(); edProps();
+}
+function edCard() { const it = edItem(), el = $(`.card[data-id="${it.id}"]`); if (el) updateCard(el, it, ED.i); }
+async function edTextDialog(init = {}) {
+  const t = { ...ED.text, text: '', ...init };
+  return modal({
+    title: init.text ? '編輯文字' : '新增文字',
+    body: `<textarea class="inp" id="tTxt" rows="3" placeholder="輸入文字（可換行，支援繁體中文）">${esc(t.text)}</textarea>
+      <div class="row" style="margin-top:12px"><label class="row" style="gap:6px">字級 <input class="inp" type="number" id="tSize" min="4" max="300" value="${+(t.size * (t.k || 1)).toFixed(1)}" style="width:80px"></label><input type="color" id="tColor" value="${t.color}"></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="tBold" ${t.bold ? 'checked' : ''}>粗體</label><label class="chk"><input type="checkbox" id="tSerif" ${t.serif ? 'checked' : ''}>明體</label><label class="chk"><input type="checkbox" id="tBg" ${t.bg ? 'checked' : ''}>白底（遮蓋原文字）</label></div>`,
+    onOk: r => {
+      const text = $('#tTxt', r).value.replace(/\s+$/, '');
+      if (!text.trim()) { toast('請輸入文字', 'warn'); return false; }
+      return { text, size: clamp(+$('#tSize', r).value || 16, 4, 300), color: $('#tColor', r).value, bold: $('#tBold', r).checked, serif: $('#tSerif', r).checked, bg: $('#tBg', r).checked };
+    },
+  });
+}
+async function edAddText(u, v) {
+  const o = await edTextDialog(); if (!o) return;
+  ED.text = { size: o.size, color: o.color, bold: o.bold, serif: o.serif, bg: o.bg };
+  const it = edItem(), g = geo(it), m = measureText(o.text, o), id = uid('a');
+  it.annots.push({ id, type: 'text', frame: g.R, x: clamp(u, 0, Math.max(0, g.dw - m.w)), y: clamp(v - m.h / 2, 0, Math.max(0, g.dh - m.h)), w: m.w, h: m.h, ...o, opacity: 1 });
+  ED.sel = id; ED.tool = 'select'; edTools(); commit(); edDraw(); edProps(); edCard();
+}
+async function edEditText(a) {
+  const m0 = measureText(a.text, a), k = a.w / m0.w;
+  const o = await edTextDialog({ ...a, k }); if (!o) return;
+  const size = o.size / k; Object.assign(a, o, { size });
+  const m = measureText(a.text, a); a.w = m.w * k; a.h = m.h * k;
+  commit(); edDraw(); edCard();
+}
+async function edPlace(u, v, tool) {
+  let id = tool === 'sign' ? S.pendingAsset : ED.pendingImg;
+  if (tool === 'image' && !id) { const f = await pickFiles('image/*,.heic,.heif', false); if (!f[0]) return; id = ED.pendingImg = (await makeAsset(f[0])).id; }
+  if (tool === 'sign' && !id) { id = await openSigPad(); if (!id) return; S.pendingAsset = id; }
+  const a = S.assets.get(id), it = edItem(), g = geo(it);
+  const w = tool === 'sign' ? Math.min(170, g.dw * 0.32) : Math.min(g.dw * 0.5, a.w * 0.75), h = w * a.h / a.w, nid = uid('a');
+  it.annots.push({ id: nid, type: 'image', frame: g.R, x: clamp(u - w / 2, 0, g.dw - w), y: clamp(v - h / 2, 0, g.dh - h), w, h, asset: id, opacity: 1 });
+  ED.sel = nid; ED.tool = 'select'; edTools(); commit(); edDraw(); edProps(); edCard();
+}
+function edProps() {
+  const t = ED.tool, it = edItem(); if (!it) return;
+  const sw = (cur, list, k) => list.map(c => `<button class="sw ${c === cur ? 'on' : ''}" style="background:${c}" data-sw="${k}" data-c="${c}" title="${c}"></button>`).join('');
+  let h = '';
+  if (t === 'select') {
+    const a = ED.sel && it.annots.find(x => x.id === ED.sel);
+    if (a) {
+      h += `<span class="lbl">已選取：${TYPE_NAMES[a.type]}</span>`;
+      if (a.type !== 'image') h += `<div class="grp">${sw(a.color, a.hl ? HL_COLORS : COLORS, 'sel')}</div>`;
+      if (a.type === 'text') h += `<button class="btn sm" data-e="editText">${ICON('edit')}編輯文字</button>`;
+      h += `<button class="btn sm" data-e="dupAll">${ICON('copy')}複製到所有頁面</button><button class="btn sm" data-e="front">移到最上層</button><button class="btn sm danger" data-e="delSel">${ICON('trash')}刪除</button>`;
+    } else h += `<span class="hint">點選標註以選取、拖曳移動；拖曳藍色圓點可縮放；雙擊文字可編輯。</span>`;
+  } else if (['pen', 'rect', 'ellipse', 'line', 'arrow'].includes(t)) {
+    h += `<div class="grp">${sw(ED.color, COLORS, 'color')}</div><div class="vsep"></div><label class="grp"><span class="lbl">粗細</span><input type="range" min="0.5" max="12" step="0.5" value="${ED.width}" data-ein="width"></label>`;
+    if (t === 'rect' || t === 'ellipse') h += `<label class="chk"><input type="checkbox" data-ein="fill" ${ED.fill ? 'checked' : ''}>填滿（白色可當修正帶）</label>`;
+  } else if (t === 'hl') h += `<div class="grp">${sw(ED.hl, HL_COLORS, 'hl')}</div><label class="grp"><span class="lbl">寬度</span><input type="range" min="4" max="36" value="${ED.hlw}" data-ein="hlw"></label>`;
+  else if (t === 'text') h += `<span class="hint">點一下頁面要放置文字的位置。勾選「白底」可遮蓋原本的文字。</span>`;
+  else if (t === 'image') h += `<button class="btn sm" data-e="pickImg">${ICON('image')}${ED.pendingImg ? '更換圖片' : '選擇圖片'}</button><span class="hint">${ED.pendingImg ? '點一下頁面放置圖片' : '選擇圖片後，點一下頁面放置'}</span>`;
+  else if (t === 'sign') h += S.sigs.map(s => `<button class="sig ${S.pendingAsset === s.id ? 'on' : ''}" data-e="pickSig" data-id="${s.id}" style="width:104px;height:42px;padding:4px;background-image:url(${S.assets.get(s.id)?.url})"></button>`).join('') + `<button class="btn sm" data-e="newSig">${ICON('plus')}手寫簽名</button><button class="btn sm" data-e="upSig">${ICON('up')}上傳</button><span class="hint">${S.pendingAsset ? '點一下頁面放置簽名' : '請先選擇或建立簽名'}</span>`;
+  else if (t === 'redact') h += `<span class="hint">框選要塗黑的區域；匯出時該頁會轉為影像，底層資料徹底移除。</span>${it.redacts.length ? `<button class="btn sm" data-e="clrRdx">清除本頁密文（${it.redacts.length}）</button>` : ''}`;
+  else if (t === 'crop') h += `<span class="hint">框選要保留的範圍</span>${it.crop ? `<button class="btn sm" data-e="cropAll">套用到全部頁面</button><button class="btn sm" data-e="cropSel">套用到所選頁面</button><button class="btn sm" data-e="cropClr">清除本頁裁剪</button>` : ''}<button class="btn sm" data-e="cropAuto">自動裁白邊</button>`;
+  if (IS_TOUCH && t !== 'select') h += `<label class="chk" style="margin-left:auto"><input type="checkbox" data-ein="pencilOnly" ${ED.pencilOnly ? 'checked' : ''}>僅 Apple Pencil 繪圖</label>`;
+  $('#edProps').innerHTML = h;
+}
+function edPropsClick(e) {
+  const it = edItem(), a = ED.sel && it.annots.find(x => x.id === ED.sel);
+  const s = e.target.closest('[data-sw]');
+  if (s) {
+    const c = s.dataset.c, k = s.dataset.sw;
+    if (k === 'sel' && a) { a.color = c; commit(); edDraw(); edCard(); } else if (k === 'color') ED.color = c; else if (k === 'hl') ED.hl = c;
+    return edProps();
+  }
+  const b = e.target.closest('[data-e]'); if (!b) return;
+  const g = geo(it);
+  switch (b.dataset.e) {
+    case 'delSel': edDeleteSel(); break;
+    case 'editText': a && edEditText(a); break;
+    case 'front': if (a) { it.annots = it.annots.filter(x => x !== a).concat(a); commit(); edDraw(); } break;
+    case 'dupAll': {
+      if (!a) break;
+      let n = 0;
+      for (const p of S.pages) {
+        if (p === it) continue;
+        p.annots.push({ ...JSON.parse(JSON.stringify(a)), id: uid('a') });
+        n++;
+      }
+      commit();
+      renderGrid();
+      toast(`已複製到其他 ${n} 頁`);
+      break;
+    }
+    case 'pickImg': pickFiles('image/*,.heic,.heif', false).then(async f => { if (f[0]) { ED.pendingImg = (await makeAsset(f[0])).id; edProps(); } }); break;
+    case 'pickSig': S.pendingAsset = b.dataset.id; edProps(); break;
+    case 'newSig': openSigPad().then(id => { if (id) { S.pendingAsset = id; edProps(); } }); break;
+    case 'upSig': pickFiles('image/*', false).then(async f => { if (f[0]) { const id = await uploadSig(f[0]); if (id) { S.pendingAsset = id; edProps(); } } }); break;
+    case 'clrRdx': it.redacts = []; commit(); edDraw(); edCard(); edProps(); break;
+    case 'cropAll': case 'cropSel': {
+      const list = b.dataset.e === 'cropAll' ? S.pages : selectedPages();
+      if (!list.length) return toast('沒有選取的頁面', 'warn');
+      list.forEach(p => p.crop = { ...it.crop }); commit(); renderGrid(); toast(`已套用到 ${list.length} 頁`); break;
+    }
+    case 'cropClr': it.crop = null; commit(); edDraw(); edCard(); edProps(); break;
+    case 'cropAuto': autoCrop([it], S.cropPad); break;
+  }
+}
+function edDeleteSel() {
+  const it = edItem();
+  if (!ED.sel) return;
+  it.annots = it.annots.filter(x => x.id !== ED.sel);
+  ED.sel = null;
+  commit();
+  edDraw();
+  edProps();
+  edCard();
+}
+function initEditor() {
+  const pg = $('#edPage'), st = $('#edStage');
+  $('#edTools').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) edSetTool(b.dataset.t); });
+  $('#edProps').addEventListener('click', edPropsClick);
+  $('#edProps').addEventListener('input', e => {
+    const k = e.target.dataset.ein;
+    if (!k) return;
+    ED[k] = e.target.type === 'checkbox' ? e.target.checked : +e.target.value;
+  });
+  $('#edClose').onclick = closeEditor;
+  $('#edPrev').onclick = () => edGo(-1); $('#edNext').onclick = () => edGo(1);
+  $('#edUndo').onclick = undo; $('#edRedo').onclick = redo;
+  $('#edZoomIn').onclick = () => edZoom(1.25); $('#edZoomOut').onclick = () => edZoom(0.8); $('#edZoomFit').onclick = () => edZoom('fit');
+  st.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); edZoom(e.deltaY < 0 ? 1.1 : 0.9); } }, { passive: false });
+  window.addEventListener('resize', () => { if (ED.open && ED.fit) { edLayout(); clearTimeout(_edRenderTimer); _edRenderTimer = setTimeout(edRenderCanvas, 200); } });
+  // 觸控：繪圖時阻止捲動；「僅 Apple Pencil」模式下手指仍可捲動
+  st.addEventListener('touchstart', e => {
+    if (!ED.open || !e.target.closest('#edPage')) return;
+    if (e.touches.length > 1) { if (ED.act) { ED.act = null; edDraw(); } return; }
+    const stylus = [...e.touches].some(t => t.touchType === 'stylus');
+    if (ED.tool === 'select') { const [u, v] = edPt(e.touches[0]); if (edHit(u, v)) e.preventDefault(); return; }
+    if (DRAW_TOOLS.has(ED.tool) && (!ED.pencilOnly || stylus)) e.preventDefault();
+  }, { passive: false });
+  st.addEventListener('touchmove', e => { if (ED.act && ED.act.type !== 'tap') e.preventDefault(); }, { passive: false });
+  pg.addEventListener('pointerdown', e => {
+    if (e.button > 0) return;
+    const t = ED.tool;
+    if (ED.pencilOnly && e.pointerType === 'touch' && t !== 'select') return;
+    const [u, v] = edPt(e);
+    if (t === 'select') {
+      const h = edHit(u, v);
+      if (!h) { if (ED.sel) { ED.sel = null; edDraw(); edProps(); } return; }
+      e.preventDefault();
+      if (ED.sel === h.a.id && h.a.type === 'text' && !h.handle && e.timeStamp - (ED._lastTap || 0) < 380) { ED._lastTap = 0; edEditText(h.a); return; }
+      ED._lastTap = e.timeStamp;
+      ED.sel = h.a.id; ED.act = { type: h.handle ? 'handle' : 'move', handle: h.handle, a: h.a, u0: u, v0: v, orig: JSON.parse(JSON.stringify(h.a)), pid: e.pointerId };
+      pg.setPointerCapture(e.pointerId); edDraw(); edProps(); return;
+    }
+    if (DRAW_TOOLS.has(t)) { e.preventDefault(); ED.act = { type: 'draw', tool: t, pts: [[u, v]], pid: e.pointerId }; pg.setPointerCapture(e.pointerId); return; }
+    ED.act = { type: 'tap', tool: t, u0: u, v0: v, pid: e.pointerId };
+  });
+  pg.addEventListener('pointermove', e => {
+    const A = ED.act; if (!A || e.pointerId !== A.pid) return;
+    const [u, v] = edPt(e);
+    if (A.type === 'draw') {
+      if (A.tool === 'pen' || A.tool === 'hl') {
+        const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; const list = evs.length ? evs : [e];
+        for (const ce of list) { const p = edPt(ce), l = A.pts[A.pts.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) > 1 / ED.zoom) A.pts.push(p); }
+      } else A.pts = [A.pts[0], [u, v]];
+      edTemp(A);
+    } else if (A.type === 'move') {
+      A.du = u - A.u0; A.dv = v - A.v0;
+      const el = $(`#edSvg [data-aid="${A.a.id}"]`), g = geo(edItem());
+      if (el) el.setAttribute('transform', `translate(${A.du} ${A.dv}) matrix(${frameToD(A.a, g).join(' ')})`);
+      const sl = $('#edSel'); if (sl) sl.setAttribute('transform', `translate(${A.du} ${A.dv})`);
+    } else if (A.type === 'handle') { edApplyHandle(A, u, v); edDraw(); }
+    else if (A.type === 'tap' && Math.hypot(u - A.u0, v - A.v0) > 8 / ED.zoom) A.moved = true;
+  });
+  const up = e => {
+    const A = ED.act; if (!A || e.pointerId !== A.pid) return; ED.act = null;
+    if (e.type === 'pointercancel') { if (A.type === 'move' || A.type === 'handle') Object.assign(A.a, A.orig); edDraw(); return; }
+    const [u, v] = edPt(e);
+    if (A.type === 'move') { if (Math.hypot(A.du || 0, A.dv || 0) > 0.5) { moveAnnot(A.a, A.du, A.dv, geo(edItem())); commit(); edCard(); } edDraw(); }
+    else if (A.type === 'handle') { commit(); edDraw(); edCard(); }
+    else if (A.type === 'tap') { if (!A.moved) A.tool === 'text' ? edAddText(u, v) : edPlace(u, v, A.tool); }
+    else if (A.type === 'draw') { if (A.tool !== 'pen' && A.tool !== 'hl') A.pts = [A.pts[0], [u, v]]; edCommitDraw(A); }
+  };
+  pg.addEventListener('pointerup', up); pg.addEventListener('pointercancel', up);
+  pg.addEventListener('dblclick', e => { if (ED.tool !== 'select') return; const [u, v] = edPt(e), h = edHit(u, v); if (h && h.a.type === 'text') edEditText(h.a); });
+}
+
+/* =====================================================================
+   簽名：手寫板（壓力感應）、上傳去背、本機保存
+   ===================================================================== */
+function trimCanvas(c, alphaMin = 8, pad = 6) {
+  const { width: w, height: h } = c, d = c.getContext('2d').getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] <= alphaMin) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (x1 < 0) return null;
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+  const o = mkCanvas(x1 - x0 + 1, y1 - y0 + 1); o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height); return o;
+}
+async function addSigFromCanvas(c, keep) {
+  const t = trimCanvas(c); if (!t) return null;
+  const blob = await canvasToBlob(t, 'image/png'); freeCanvas(t);
+  const a = await makeAsset(blob, { sig: true });
+  S.sigs.push({ id: a.id }); if (keep) persistSigs(); return a.id;
+}
+function persistSigs() {
+  if (!S.remember) { try { localStorage.removeItem('pdfws.sigs'); } catch { } return; }
+  const toDataURL = bytes => new Promise(r => {
+    const fr = new FileReader();
+    fr.onload = () => r(fr.result);
+    fr.readAsDataURL(new Blob([bytes], { type: 'image/png' }));
+  });
+  Promise.all(S.sigs.filter(s => S.assets.has(s.id)).map(s => toDataURL(S.assets.get(s.id).bytes)))
+    .then(list => {
+      try { localStorage.setItem('pdfws.sigs', JSON.stringify(list.slice(-8))); } catch { }
+    });
+}
+async function loadSigs() {
+  try {
+    const list = JSON.parse(localStorage.getItem('pdfws.sigs') || '[]');
+    for (const u of list) { const b = await (await fetch(u)).blob(); const a = await makeAsset(b, { sig: true }); S.sigs.push({ id: a.id }); }
+  } catch { }
+}
+function openSigPad() {
+  let strokes = [], cur = null, color = '#111111', bw = 2.6, dpr = 2, c, ctx;
+  const wOf = (s, p) => s.w * (p.pen ? 0.25 + p.p * 1.5 : 1);
+  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const seg = (s, i) => {
+    const pts = s.pts; ctx.strokeStyle = ctx.fillStyle = s.color; ctx.lineCap = ctx.lineJoin = 'round';
+    if (i === 0) { ctx.beginPath(); ctx.arc(pts[0].x * dpr, pts[0].y * dpr, wOf(s, pts[0]) * dpr / 2, 0, 7); ctx.fill(); return; }
+    const a = pts[i - 1], b = pts[i], p0 = i > 1 ? mid(pts[i - 2], a) : a, p1 = mid(a, b);
+    ctx.lineWidth = (wOf(s, a) + wOf(s, b)) / 2 * dpr;
+    ctx.beginPath(); ctx.moveTo(p0.x * dpr, p0.y * dpr); ctx.quadraticCurveTo(a.x * dpr, a.y * dpr, p1.x * dpr, p1.y * dpr); ctx.stroke();
+  };
+  const redraw = () => { ctx.clearRect(0, 0, c.width, c.height); strokes.forEach(s => s.pts.forEach((_, i) => seg(s, i))); };
+  return modal({
+    title: '手寫簽名', wide: true, ok: '使用此簽名',
+    body: `<div class="sigpad" id="sigPad"><div class="base"></div><span class="hint">請在此簽名（支援滑鼠、觸控與 Apple Pencil 壓力感應）</span><canvas></canvas></div>
+      <div class="row" style="margin-top:12px">${['#111111', '#1c3faa', '#c92a2a'].map((cl, i) => `<button class="sw ${i ? '' : 'on'}" style="background:${cl}" data-c="${cl}"></button>`).join('')}
+      <label class="row" style="gap:6px;flex:1;min-width:150px"><span style="color:var(--muted)">筆寬</span><input type="range" min="1" max="6" step="0.2" value="2.6" id="sigW"></label>
+      <button class="btn sm" data-s="undo">${ICON('undo')}復原</button><button class="btn sm" data-s="clear">清除</button></div>
+      <label class="chk" style="margin-top:8px"><input type="checkbox" id="sigKeep" ${S.remember ? 'checked' : ''}>記住此簽名（僅存在這台裝置的瀏覽器）</label>`,
+    onOpen: root => {
+      const pad = $('#sigPad', root); c = $('canvas', pad); ctx = c.getContext('2d'); dpr = Math.max(2, DPR());
+      c.width = pad.clientWidth * dpr; c.height = pad.clientHeight * dpr;
+      const pt = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, p: e.pressure || 0.5, pen: e.pointerType === 'pen' }; };
+      c.addEventListener('pointerdown', e => { e.preventDefault(); c.setPointerCapture(e.pointerId); cur = { color, w: bw, pts: [pt(e)], pid: e.pointerId }; strokes.push(cur); seg(cur, 0); });
+      c.addEventListener('pointermove', e => {
+        if (!cur || e.pointerId !== cur.pid) return;
+        const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; for (const ce of (evs.length ? evs : [e])) { cur.pts.push(pt(ce)); seg(cur, cur.pts.length - 1); }
+      });
+      const end = () => { cur = null; }; c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+      root.addEventListener('click', e => {
+        const sw = e.target.closest('[data-c]'); if (sw) { color = sw.dataset.c; $$('[data-c]', root).forEach(b => b.classList.toggle('on', b === sw)); }
+        const s = e.target.closest('[data-s]')?.dataset.s; if (s === 'undo') { strokes.pop(); redraw(); } else if (s === 'clear') { strokes = []; redraw(); }
+      });
+      $('#sigW', root).addEventListener('input', e => bw = +e.target.value);
+    },
+    onOk: async root => {
+      if (!strokes.length) { toast('請先簽名', 'warn'); return false; }
+      S.remember = $('#sigKeep', root).checked;
+      const id = await addSigFromCanvas(c, S.remember); if (!id) return false;
+      if (S.tool === 'sign') renderPanel(); return id;
+    },
+  });
+}
+async function uploadSig(file) {
+  try {
+    const img = await decodeImage(file), k = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = mkCanvas(img.naturalWidth * k, img.naturalHeight * k), x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height); releaseImg(img);
+    if (S.sigRemoveBg) {
+      const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+      for (let i = 0; i < p.length; i += 4) {
+        const l = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+        const a = l > 215 ? 0 : l > 150 ? Math.round(255 * (215 - l) / 65) : 255;
+        p[i + 3] = Math.min(p[i + 3], a);
+      }
+      x.putImageData(d, 0, 0);
+    }
+    const id = await addSigFromCanvas(c, S.remember); freeCanvas(c);
+    if (!id) toast('圖片中沒有可辨識的簽名內容', 'warn'); else toast('已加入簽名');
+    return id;
+  } catch (e) { toast(e.message, 'err'); return null; }
+}
+
+/* =====================================================================
+   比較 PDF
+   ===================================================================== */
+const CMP = { extra: new Map(), mode: 'side', textCache: new Map(), lock: null };
+function cmpDocList() {
+  const l = [];
+  S.sources.forEach(s => { if (s.type === 'pdf') l.push({ id: s.id, name: s.name, doc: s.doc, pages: s.pages }); });
+  CMP.extra.forEach(v => l.push(v));
+  return l;
+}
+const cmpGet = id => cmpDocList().find(d => d.id === id);
+function cmpFillSelects(keepA, keepB) {
+  const l = cmpDocList(), opts = l.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+  $('#cmpA').innerHTML = opts; $('#cmpB').innerHTML = opts;
+  $('#cmpA').value = keepA && cmpGet(keepA) ? keepA : l[0]?.id || '';
+  $('#cmpB').value = keepB && cmpGet(keepB) ? keepB : (l[1] || l[0])?.id || '';
+}
+function openCompare() {
+  $('#compare').hidden = false;
+  cmpFillSelects($('#cmpA').value, $('#cmpB').value);
+  if (cmpDocList().length < 2) toast('請按「開啟其他檔案」選擇要比較的第二份 PDF', '', 4500);
+  cmpRender();
+}
+function closeCompare() {
+  $('#compare').hidden = true;
+  for (const col of [$('#cmpColA'), $('#cmpColB')]) {
+    if (col._io) { col._io.disconnect(); col._io = null; }
+    $$('canvas', col).forEach(freeCanvas);
+    col.innerHTML = '';
+  }
+}
+async function cmpAddFiles(files) {
+  const pdfjs = await getPdfjs(); let last = null;
+  for (const f of files) {
+    if (!(f.type === 'application/pdf' || /\.pdf$/i.test(f.name))) continue;
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer()), doc = await pdfjsOpen(pdfjs, bytes, f.name), pages = [];
+      for (let i = 1; i <= doc.numPages; i++) { const p = await doc.getPage(i), v = p.view; pages.push({ W: v[2] - v[0], H: v[3] - v[1], rot: norm(p.rotate) }); }
+      const id = uid('c'); CMP.extra.set(id, { id, name: f.name + '（比較用）', doc, pages }); last = id;
+    } catch (e) { toast(`無法開啟 ${f.name}`, 'err'); }
+  }
+  if (!last) return;
+  cmpFillSelects($('#cmpA').value === last ? null : $('#cmpA').value, last);
+  if ($('#cmpA').value === last) $('#cmpA').value = cmpDocList()[0].id;
+  cmpRender();
+}
+function cmpRender() {
+  const a = cmpGet($('#cmpA').value), b = cmpGet($('#cmpB').value);
+  $('#cmpSide').hidden = CMP.mode !== 'side'; $('#cmpDiff').hidden = CMP.mode !== 'text';
+  $('#cmpSyncWrap').hidden = CMP.mode !== 'side'; $('#cmpOnlyWrap').hidden = CMP.mode !== 'text';
+  if (CMP.mode === 'side') { cmpCol($('#cmpColA'), a); cmpCol($('#cmpColB'), b); }
+  else cmpText(a, b);
+}
+function cmpCol(col, d) {
+  // 先中斷上一次建立的 Observer，避免舊頁面元素被持續追蹤而無法回收
+  if (col._io) { col._io.disconnect(); col._io = null; }
+  $$('canvas', col).forEach(freeCanvas);
+  col.innerHTML = d ? `<h5>${esc(d.name)}</h5>` : '<h5>（未選擇）</h5>';
+  col.scrollTop = 0;
+  if (!d) return;
+  const io = new IntersectionObserver(ents => ents.forEach(e => {
+    const el = e.target;
+    if (e.isIntersecting && !el._done) {
+      el._done = true;
+      cmpRenderPage(el, d);
+    } else if (!e.isIntersecting && el._done) {
+      const cv = $('canvas', el);
+      if (cv) { freeCanvas(cv); cv.remove(); }
+      el._done = false;
+    }
+  }), { root: col, rootMargin: '1200px 0px' });
+  col._io = io;
+  d.pages.forEach((p, i) => {
+    const sw = p.rot % 180 === 0;
+    const el = document.createElement('div');
+    el.className = 'cpg';
+    el.dataset.i = i;
+    el.style.aspectRatio = `${sw ? p.W : p.H} / ${sw ? p.H : p.W}`;
+    el.innerHTML = `<i>${i + 1}</i>`;
+    col.appendChild(el);
+    io.observe(el);
+  });
+}
+async function cmpRenderPage(el, d) {
+  try {
+    const page = await d.doc.getPage(+el.dataset.i + 1), w = Math.min(900, el.clientWidth) * DPR(), vp0 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: w / vp0.width }), c = mkCanvas(vp.width, vp.height);
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    if (el._done && el.isConnected) el.prepend(c); else freeCanvas(c);
+  } catch (e) { console.warn(e); }
+}
+function cmpSync(from, to) {
+  if (!$('#cmpSync').checked || (CMP.lock && CMP.lock !== from)) return;
+  CMP.lock = from;
+  const r = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight);
+  to.scrollTop = r * (to.scrollHeight - to.clientHeight);
+  clearTimeout(CMP._t); CMP._t = setTimeout(() => CMP.lock = null, 80);
+}
+function itemsToText(items) {
+  let out = '', last = null;
+  for (const it of items) {
+    if (typeof it.str !== 'string') continue;
+    if (last && !out.endsWith('\n') && Math.abs(it.transform[5] - last.transform[5]) > Math.max(2, (it.height || 8) * 0.6)) out += '\n';
+    out += it.str; if (it.hasEOL) out += '\n'; last = it;
+  }
+  return out.split('\n').map(l => l.replace(/[ \t ]+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+async function docText(d, pr) {
+  if (CMP.textCache.has(d.id)) return CMP.textCache.get(d.id);
+  const parts = [];
+  for (let i = 1; i <= d.doc.numPages; i++) {
+    const tc = await (await d.doc.getPage(i)).getTextContent();
+    parts.push(`〔第 ${i} 頁〕\n${itemsToText(tc.items)}`);
+    pr && pr.set(i / d.doc.numPages, `擷取「${d.name}」文字 ${i}/${d.doc.numPages}`);
+  }
+  const s = parts.join('\n') + '\n'; CMP.textCache.set(d.id, s); return s;
+}
+async function cmpText(a, b) {
+  const box = $('#cmpDiff');
+  if (!a || !b) { box.innerHTML = '<div class="diffbox">請選擇兩份文件</div>'; return; }
+  const pr = busy('擷取文字中…');
+  try {
+    const [Diff, ta] = await Promise.all([getDiff(), docText(a, pr)]), tb = await docText(b, pr);
+    const strip = s => s.replace(/〔第 \d+ 頁〕\n?/g, '').trim();
+    if (!strip(ta) && !strip(tb)) { box.innerHTML = '<div class="diffbox">兩份文件都沒有可擷取的文字（可能是掃描影像），請改用並排檢視。</div>'; return; }
+    pr.set(1, '比對差異中…'); await tick();
+    const parts = Diff.diffLines(ta, tb), only = $('#cmpOnly').checked;
+    let html = '', adds = 0, dels = 0;
+    const pg = s => esc(s).replace(/〔第 (\d+) 頁〕\n?/g, '<span class="pg">第 $1 頁</span>');
+    const same = (v, first, lastPart) => {
+      if (!only) return pg(v);
+      const lines = v.split('\n'); if (lines[lines.length - 1] === '') lines.pop();
+      const keepHead = first ? 0 : 2, keepTail = lastPart ? 0 : 2;
+      if (lines.length <= keepHead + keepTail + 2) return pg(lines.join('\n') + '\n');
+      const pages = lines.slice(keepHead, lines.length - keepTail).filter(l => /^〔第 \d+ 頁〕$/.test(l)).map(l => l.match(/\d+/)[0]);
+      return pg(lines.slice(0, keepHead).join('\n') + (keepHead ? '\n' : '')) + `<span class="fold">⋯ 略過 ${lines.length - keepHead - keepTail} 行相同內容${pages.length ? `（第 ${pages[0]}${pages.length > 1 ? '–' + pages[pages.length - 1] : ''} 頁）` : ''}</span>` + pg(lines.slice(lines.length - keepTail).join('\n') + (keepTail ? '\n' : ''));
+    };
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (p.removed && parts[i + 1]?.added) {
+        const q = parts[++i]; dels += p.count; adds += q.count;
+        const cd = p.value.length + q.value.length < 12000 ? Diff.diffChars(p.value, q.value) : null;
+        const common = cd ? cd.filter(c => !c.added && !c.removed).reduce((n, c) => n + c.value.replace(/\s/g, '').length, 0) : 0;
+        html += cd && common / Math.max(1, (p.value.length > q.value.length ? p.value : q.value).replace(/\s/g, '').length) >= 0.5
+          ? cd.map(c => c.added ? `<ins>${esc(c.value)}</ins>` : c.removed ? `<del>${esc(c.value)}</del>` : pg(c.value)).join('')
+          : `<del>${esc(p.value)}</del><ins>${esc(q.value)}</ins>`;
+      } else if (p.removed) { dels += p.count; html += `<del>${esc(p.value)}</del>`; }
+      else if (p.added) { adds += p.count; html += `<ins>${esc(p.value)}</ins>`; }
+      else html += same(p.value, i === 0, i === parts.length - 1);
+    }
+    box.innerHTML = `<div class="diffsum"><span><b>A</b> ${esc(a.name)}</span><span><b>B</b> ${esc(b.name)}</span><span style="color:#067647">＋ ${adds} 行新增／修改</span><span style="color:#b42318">－ ${dels} 行刪除／修改</span>${!adds && !dels ? '<span>✓ 文字內容完全相同</span>' : ''}</div><div class="diffbox">${html}</div>`;
+  } catch (e) { console.error(e); box.innerHTML = `<div class="diffbox">比對失敗：${esc(e.message)}</div>`; }
+  finally { pr.done(); }
+}
+function initCompare() {
+  $('#cmpClose').onclick = closeCompare;
+  $('#cmpA').onchange = $('#cmpB').onchange = cmpRender;
+  $('#cmpUpload').onclick = async () => { const f = await pickFiles('application/pdf,.pdf'); if (f.length) cmpAddFiles(f); };
+  $('#cmpMode').addEventListener('click', e => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    CMP.mode = b.dataset.v;
+    $$('#cmpMode button').forEach(x => x.classList.toggle('on', x === b));
+    cmpRender();
+  });
+  $('#cmpOnly').onchange = () => cmpRender();
+  const A = $('#cmpColA'), B = $('#cmpColB');
+  A.addEventListener('scroll', () => cmpSync(A, B), { passive: true }); B.addEventListener('scroll', () => cmpSync(B, A), { passive: true });
+}
+
+/* =====================================================================
+   PDF 表單
+   ===================================================================== */
+const FORM = { srcId: null, fields: null };
+/** 建立「註解物件參照 → 頁面索引」對照表，用來找出表單欄位位於第幾頁 */
+function mapWidgetPages(doc, L) {
+  const map = new Map();
+  doc.getPages().forEach((p, i) => {
+    const an = p.node.Annots();
+    if (!an) return;
+    for (let j = 0; j < an.size(); j++) {
+      const r = an.get(j);
+      if (r instanceof L.PDFRef) map.set(r.toString(), i);
+    }
+  });
+  return map;
+}
+const widgetPage = (doc, pageOf, w) => pageOf.get(doc.context.getObjectRef(w.dict)?.toString());
+async function formLoad(srcId) {
+  FORM.srcId = srcId; FORM.fields = null;
+  try {
+    const L = await getPdfLib(), s = S.sources.get(srcId);
+    const doc = await L.PDFDocument.load(s.bytes, { ignoreEncryption: true, updateMetadata: false });
+    const pageOf = mapWidgetPages(doc, L);
+    FORM.fields = doc.getForm().getFields().map(f => {
+      const o = { name: f.getName(), ro: f.isReadOnly() };
+      if (f instanceof L.PDFTextField) Object.assign(o, { kind: 'text', value: f.getText() || '', multiline: f.isMultiline() });
+      else if (f instanceof L.PDFCheckBox) Object.assign(o, { kind: 'check', value: f.isChecked() });
+      else if (f instanceof L.PDFRadioGroup) Object.assign(o, { kind: 'radio', options: f.getOptions(), value: f.getSelected() || '' });
+      else if (f instanceof L.PDFDropdown) Object.assign(o, { kind: 'dropdown', options: f.getOptions(), value: f.getSelected()[0] || '' });
+      else if (f instanceof L.PDFOptionList) Object.assign(o, { kind: 'list', options: f.getOptions(), value: f.getSelected()[0] || '' });
+      else return null;
+      const pg = f.acroField.getWidgets().map(w => widgetPage(doc, pageOf, w)).find(x => x != null);
+      o.page = pg != null ? pg + 1 : null; return o;
+    }).filter(Boolean);
+  } catch (e) { console.error(e); FORM.fields = []; toast('讀取表單失敗：' + e.message, 'err'); }
+  if (S.tool === 'form' && FORM.srcId === srcId) renderPanel();
+}
+function wrapText(x, text, maxW) {
+  const out = [];
+  for (const para of String(text).split('\n')) {
+    let line = '';
+    for (const ch of para) { if (x.measureText(line + ch).width > maxW && line) { out.push(line); line = ch.trim() ? ch : ''; } else line += ch; }
+    out.push(line);
+  }
+  return out;
+}
+async function fieldTextPng(text, w, h, size, multiline) {
+  const k = 4, c = mkCanvas(w * k, h * k), x = c.getContext('2d'); x.scale(k, k);
+  const pad = 2;
+  if (!size) size = multiline ? Math.min(12, h * 0.8) : Math.min(12, h * 0.68);
+  x.font = `${size}px ${FONT_SANS}`;
+  if (!multiline) { while (size > 4 && x.measureText(text).width > w - pad * 2) { size -= 0.5; x.font = `${size}px ${FONT_SANS}`; } }
+  x.fillStyle = '#000'; x.textBaseline = 'middle';
+  if (multiline) wrapText(x, text, w - pad * 2).forEach((l, i) => x.fillText(l, pad, pad + size * 1.2 * (i + 0.5)));
+  else x.fillText(text.replace(/\n/g, ' '), pad, h / 2);
+  const b = await canvasToBlob(c, 'image/png'); freeCanvas(c); return blobBytes(b);
+}
+async function formExport() {
+  if (!FORM.fields) return;
+  const flatten = S.formFlatten, pr = busy('產生表單 PDF…');
+  try {
+    const L = await getPdfLib(), s = S.sources.get(FORM.srcId);
+    const doc = await L.PDFDocument.load(s.bytes, { ignoreEncryption: true, updateMetadata: false }), form = doc.getForm();
+    const pages = doc.getPages();
+    const pageOf = mapWidgetPages(doc, L);
+    const cjk = [], latinText = [];
+    for (const fd of FORM.fields) {
+      if (fd.ro) continue;
+      let f; try { f = form.getField(fd.name); } catch { continue; }
+      const v = fd.value;
+      if (fd.kind === 'check') { v ? f.check() : f.uncheck(); continue; }
+      if (fd.kind === 'radio') { v ? f.select(v) : f.clear(); continue; }
+      const text = String(v ?? '');
+      if (!fd.dirty && !flatten) continue;
+      const latin = isLatin(text);
+      if (!latin) {
+        const da = (f.acroField.getDefaultAppearance?.() || '').match(/([\d.]+)\s+Tf/);
+        cjk.push({ f, fd, text, size: da ? +da[1] : 0, widgets: f.acroField.getWidgets().map(w => ({ rect: w.getRectangle(), page: widgetPage(doc, pageOf, w) })) });
+      }
+      if (fd.kind === 'text') { if (latin || !flatten) f.setText(text || undefined); else f.setText(''); }
+      else { if (!text) f.clear(); else if (latin || !flatten) f.select(text); else f.clear(); }
+      if (latin) latinText.push(f);
+    }
+    let bytes;
+    if (flatten) {
+      try { form.flatten(); } catch (e) { console.warn(e); form.flatten({ updateFieldAppearances: false }); }
+      for (const c of cjk) for (const w of c.widgets) {
+        if (w.page == null || !w.rect.width || !w.rect.height) continue;
+        const png = await fieldTextPng(c.text, w.rect.width, w.rect.height, c.size, c.fd.multiline);
+        pages[w.page].drawImage(await doc.embedPng(png), { x: w.rect.x, y: w.rect.y, width: w.rect.width, height: w.rect.height });
+      }
+      bytes = await doc.save();
+    } else if (cjk.length) {
+      // 中文值：交由閱讀器以其內建字型產生外觀（NeedAppearances），避免需要嵌入中文字型
+      const helv = await doc.embedFont(L.StandardFonts.Helvetica);
+      for (const f of latinText) { try { f.updateAppearances(helv); } catch (e) { console.warn(e); } }
+      for (const c of cjk) { form.markFieldAsClean(c.f.ref); c.f.acroField.getWidgets().forEach(w => w.dict.delete(L.PDFName.of('AP'))); }
+      form.acroForm.dict.set(L.PDFName.of('NeedAppearances'), L.PDFBool.True);
+      bytes = await doc.save({ updateFieldAppearances: false });
+    } else bytes = await doc.save();
+    saveBlob(new Blob([bytes], { type: 'application/pdf' }), s.name.replace(/\.pdf$/i, '') + (flatten ? '_已填寫_扁平化.pdf' : '_已填寫.pdf'));
+    toast(flatten ? '已匯出扁平化表單' : cjk.length ? '已匯出（中文欄位由閱讀器顯示，若顯示異常請改用扁平化）' : '已匯出表單', '', 5000);
+  } catch (e) { console.error(e); toast('表單匯出失敗：' + (e.message || e), 'err', 6000); }
+  finally { pr.done(); }
+}
+
+/* =====================================================================
+   初始化
+   ===================================================================== */
+function buildNav() {
+  let h = '', g = '';
+  for (const t of TOOLS) {
+    if (t.g !== g) { g = t.g; h += `<h6>${g}</h6>`; }
+    h += `<button class="tbtn" data-tool="${t.id}">${ICON(t.icon)}<span>${t.name}</span></button>`;
+  }
+  $('#toolnav').innerHTML = h;
+  // 空白畫面的 15 項功能捷徑
+  const CHIPS = [
+    ['合併', 'organize'], ['拆分', 'split'], ['排列', 'organize'], ['旋轉', 'rotate'], ['裁剪', 'crop'],
+    ['PDF 轉 JPG', 'toimg'], ['JPG 轉 PDF', 'fromimg'], ['壓縮', 'compress'], ['浮水印', 'watermark'], ['頁碼', 'pagenum'],
+    ['簽名', 'sign'], ['編輯', 'edit'], ['密文', 'redact'], ['比較', 'compare'], ['表單', 'form'],
+  ];
+  $('#chips').innerHTML = CHIPS.map(([n, t]) => `<button data-tool="${t}">${n}</button>`).join('');
+  const onTool = e => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); };
+  $('#toolnav').addEventListener('click', onTool);
+  $('#chips').addEventListener('click', onTool);
+}
+function init() {
+  document.body.classList.toggle('touch', IS_TOUCH);
+  loadSettings(); buildNav(); initGridInteractions(); initEditor(); initCompare();
+  $('#btnAdd').onclick = $('#btnAdd2').onclick = () => $('#fileInput').click();
+  $('#fileInput').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+  $('#btnExport').onclick = openExportDialog;
+  $('#btnUndo').onclick = undo; $('#btnRedo').onclick = redo;
+  $('#panel').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && ACTIONS[b.dataset.a]) ACTIONS[b.dataset.a](b, e); });
+  $('#wsBar').addEventListener('click', e => {
+    const a = e.target.closest('[data-ws]')?.dataset.ws;
+    ({ all: ACTIONS.selAll, none: ACTIONS.selNone, rotl: ACTIONS.rotl, rotr: ACTIONS.rotr, del: ACTIONS.del, edit: () => openEditor(null) })[a]?.();
+  });
+  $('#thumbSize').addEventListener('input', e => document.documentElement.style.setProperty('--thumb-w', e.target.value + 'px'));
+  // 拖放檔案
+  let depth = 0; const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+  window.addEventListener('dragenter', e => { if (hasFiles(e)) { depth++; document.body.classList.add('dragover'); } });
+  window.addEventListener('dragleave', e => { if (hasFiles(e) && --depth <= 0) { depth = 0; document.body.classList.remove('dragover'); } });
+  window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', e => {
+    if (!hasFiles(e)) return; e.preventDefault(); depth = 0; document.body.classList.remove('dragover');
+    const f = e.dataTransfer.files; if (!$('#compare').hidden) cmpAddFiles(f); else addFiles(f);
+  });
+  window.addEventListener('paste', e => {
+    if (e.target.closest?.('input,textarea')) return;
+    const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); addFiles(f); }
+  });
+  document.addEventListener('keydown', e => {
+    if (document.querySelector('.modal-back') || e.target.closest('input,textarea,select,[contenteditable]')) return;
+    const mod = e.metaKey || e.ctrlKey, k = e.key.toLowerCase();
+    if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && k === 'y') { e.preventDefault(); redo(); return; }
+    if (ED.open) {
+      if (e.key === 'Escape') { if (ED.sel) { ED.sel = null; edDraw(); edProps(); } else closeEditor(); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && ED.sel) { e.preventDefault(); edDeleteSel(); }
+      else if (e.key === 'PageDown' || (e.key === 'ArrowRight' && !ED.sel)) edGo(1);
+      else if (e.key === 'PageUp' || (e.key === 'ArrowLeft' && !ED.sel)) edGo(-1);
+      return;
+    }
+    if (!$('#compare').hidden) { if (e.key === 'Escape') closeCompare(); return; }
+    if (mod && k === 'a') { e.preventDefault(); ACTIONS.selAll(); }
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel.size) { e.preventDefault(); deletePages(selectedPages()); }
+    else if (e.key === 'Escape' && S.sel.size) ACTIONS.selNone();
+  });
+  window.addEventListener('beforeunload', e => { if (S.pages.length) { e.preventDefault(); e.returnValue = ''; } });
+  renderAll(); resetHistory(); loadSigs();
+  // 閒置時預先載入函式庫，讓第一次開檔更快
+  const idle = window.requestIdleCallback || (f => setTimeout(f, 1200));
+  idle(() => getPdfjs().then(() => idle(() => getPdfLib().catch(() => { }))).catch(() => { }));
+}
+init();
+</script>
+</body>
+</html>
