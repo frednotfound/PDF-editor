@@ -5,29 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PDF 工作台｜100% 本機處理的線上 PDF 工具</title>
 <meta name="description" content="合併、拆分、排列、旋轉、裁剪、壓縮、浮水印、頁碼、簽名、編輯、密文、比較、表單填寫。所有處理都在瀏覽器完成，檔案不會上傳。">
-<meta name="theme-color" content="#e5484d">
+<meta name="theme-color" content="#00A9E0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PDF 工作台">
 <meta name="referrer" content="no-referrer">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e5484d'/%3E%3Cpath d='M11 7h7l5 5v13H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300A9E0'/%3E%3Cpath d='M11 7h7l5 5v13H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="dns-prefetch" href="https://unpkg.com">
 <style>
 :root{
   --bg:#f2f3f5; --surface:#fff; --surface2:#f7f8fa; --ink:#141820; --muted:#677084; --line:#e2e5eb; --line2:#d3d8e0;
-  --accent:#e5484d; --accent-h:#d43a3f; --accent-soft:#fdecec; --sel:#2563eb; --sel-soft:rgba(37,99,235,.12);
+  /* 主題色：Pantone 2995 C（#00A9E0）；--accent-ink 用於淺底上的文字，確保可讀性 */
+  --accent:#00A9E0; --accent-h:#0095C8; --accent-ink:#00739B; --accent-soft:#E3F6FC; --sel:#0095C8; --sel-soft:rgba(0,169,224,.16);
   --ok:#16a34a; --warn:#d97706; --err:#dc2626;
   --r:12px; --r-s:8px;
   --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 18px rgba(16,24,40,.07);
   --shadow-l:0 12px 40px rgba(16,24,40,.22);
   --font:"PingFang TC","Noto Sans TC","Microsoft JhengHei","Heiti TC",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --thumb-w:168px;
+  --cols:3;
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){
   :root{--bg:#0e1014;--surface:#171a20;--surface2:#1d2128;--ink:#e9ebf0;--muted:#9aa3b5;--line:#2a2f38;--line2:#363c47;
-  --accent-soft:#3b1c1e;--sel:#4f8cff;--sel-soft:rgba(79,140,255,.2);--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35)}
+  --accent-soft:#0B3140;--accent-ink:#5CCDF0;--sel:#33BDEB;--sel-soft:rgba(0,169,224,.24);--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35)}
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -52,7 +53,7 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .btn:hover{background:var(--surface2)}
 .btn:active{transform:translateY(1px)}
 .btn:disabled{opacity:.45;pointer-events:none}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .btn.primary:hover{background:var(--accent-h)}
 .btn.ghost{border-color:transparent;background:transparent}
 .btn.ghost:hover{background:var(--surface2)}
@@ -70,7 +71,7 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .toolnav h6:first-child{margin-top:2px}
 .tbtn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border:0;background:transparent;border-radius:var(--r-s);text-align:left;color:var(--ink)}
 .tbtn:hover{background:var(--surface2)}
-.tbtn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tbtn.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
 
 .workspace{position:relative;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .ws-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 14px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
@@ -78,7 +79,13 @@ svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .ws-bar .info b{color:var(--ink)}
 .ws-bar .sp{flex:1}
 .ws-bar input[type=range]{width:90px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--thumb-w),1fr));gap:18px;padding:18px 18px 120px;align-items:end}
+.grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:18px;padding:18px 18px 120px;align-items:end}
+.grid.compact .card-acts{display:none}
+.grid.narrow .card-acts button:not([data-act=edit]){display:none}
+.grid.compact .cap .fn,.grid.compact .cap .bd{display:none}
+.cols-lbl{font-size:12px;color:var(--muted);margin-left:6px}
+.cols-seg{padding:2px;gap:2px}
+.cols-seg button{min-height:28px;min-width:30px;padding:2px 6px;font-variant-numeric:tabular-nums}
 
 .card{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .thumb{position:relative;width:100%;background:#fff;border-radius:6px;box-shadow:var(--shadow);overflow:hidden;outline:2px solid transparent;outline-offset:3px;transition:outline-color .12s,transform .12s}
@@ -113,7 +120,7 @@ body.touch .card-acts button{width:32px;height:32px}
 .dropzone{max-width:680px;width:100%;text-align:center;padding:44px 28px;border:2px dashed var(--line2);border-radius:20px;background:var(--surface)}
 .dropzone h2{margin:14px 0 6px;font-size:22px}
 .dropzone p{margin:0 0 20px;color:var(--muted)}
-.dz-icon{width:64px;height:64px;margin:auto;border-radius:18px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.dz-icon{width:64px;height:64px;margin:auto;border-radius:18px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center}
 .dz-icon svg{width:32px;height:32px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:26px}
 .chips button{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:5px 12px;font-size:12.5px;color:var(--muted)}
@@ -194,7 +201,7 @@ ul.tips li{margin:3px 0}
 .ed-tools::-webkit-scrollbar{display:none}
 .etb{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:58px;padding:6px 6px 4px;border:1px solid transparent;border-radius:var(--r-s);background:transparent;font-size:11.5px;color:var(--muted)}
 .etb:hover{background:var(--surface2)}
-.etb.on{background:var(--accent-soft);color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
+.etb.on{background:var(--accent-soft);color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
 .etb svg.i{width:22px;height:22px}
 .ed-props{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 12px;background:var(--surface2);border-bottom:1px solid var(--line);min-height:50px;font-size:13px;flex:none}
 .ed-props .lbl{color:var(--muted)}
@@ -219,6 +226,10 @@ ul.tips li{margin:3px 0}
 .cmp-col .cpg{position:relative;width:100%;max-width:900px;background:#fff;box-shadow:var(--shadow)}
 .cmp-col .cpg canvas{width:100%;height:100%;display:block}
 .cmp-col .cpg i{position:absolute;bottom:-20px;left:0;font-style:normal;font-size:11px;color:var(--muted)}
+.cmp-pgbadge{position:sticky;bottom:12px;z-index:2;align-self:center;margin-top:-4px;padding:5px 14px;border-radius:99px;
+  background:rgba(20,24,32,.78);color:#fff;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap}
+.cmp-pgbadge:empty{display:none}
 .cmp-col h5{margin:0;align-self:stretch;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmp-diff{flex:1;overflow:auto;padding:18px;background:var(--bg)}
 .diffbox{max-width:980px;margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font:13.5px/1.75 var(--font);white-space:pre-wrap;word-break:break-word}
@@ -275,7 +286,6 @@ ul.tips li{margin:3px 0}
   .brand b{display:none}
   .top-actions .lbl{display:none}
   .grid{gap:12px;padding:12px 12px 80px}
-  :root{--thumb-w:130px}
   .cmp-body{grid-template-columns:1fr}
 }
 .panel-toggle{display:none!important}
@@ -356,7 +366,10 @@ ul.tips li{margin:3px 0}
       <button class="btn sm icon" data-ws="rotr" title="向右旋轉所選頁"><svg class="i"><use href="#i-rotr"/></svg></button>
       <button class="btn sm icon" data-ws="edit" title="編輯所選頁"><svg class="i"><use href="#i-edit"/></svg></button>
       <button class="btn sm icon danger" data-ws="del" title="刪除所選頁"><svg class="i"><use href="#i-trash"/></svg></button>
-      <input type="range" id="thumbSize" min="110" max="280" value="168" title="縮圖大小" aria-label="縮圖大小">
+      <span class="cols-lbl">每列</span>
+      <div class="seg cols-seg" id="colSeg" role="group" aria-label="每列顯示頁數" title="每列顯示頁數（數字越小縮圖越大）">
+        <button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button>
+      </div>
     </div>
     <div class="grid" id="grid"></div>
     <div class="empty" id="empty">
@@ -604,7 +617,7 @@ function pdfjsOpen(pdfjs, bytes, name) {
 }
 
 /* ---------------- 狀態 ---------------- */
-const SRC_COLORS = ['#e5484d', '#2563eb', '#12a594', '#f76b15', '#8e4ec6', '#d6409f', '#0090ff', '#46a758', '#ad7f58'];
+const SRC_COLORS = ['#00A9E0', '#f76b15', '#12a594', '#8e4ec6', '#d6409f', '#e5a50a', '#46a758', '#2f5bd3', '#ad7f58'];
 const S = {
   sources: new Map(),  // id -> {id,type:'pdf'|'image'|'blank',name,size,bytes,doc,num,pages:[{W,H,vx,vy,rot}],color,hasForm}
   pages: [],           // {id,src,idx,rot,crop,annots,redacts}
@@ -623,6 +636,9 @@ const S = {
   toimg: { fmt: 'jpg', dpi: 150, q: 0.9, scope: 'all', edits: true },
   split: { mode: 'selected', ranges: '', every: 2 },
   remember: true,
+  cols: 3,       // 工作台每列顯示頁數（1–5）
+  thumbPx: 480,  // 依目前卡片寬度決定的縮圖渲染寬度（px）
+  cardW: 200,    // 目前卡片寬度（CSS px）
 };
 const PERSIST = ['wm', 'pn', 'img', 'cmp', 'toimg'];
 function saveSettings() {
@@ -635,6 +651,11 @@ function saveSettings() {
   } catch { }
 }
 function loadSettings() {
+  try {
+    const c = +localStorage.getItem('pdfws.cols');
+    if (c >= 1 && c <= 5) S.cols = c;
+  } catch { }
+  document.documentElement.style.setProperty('--cols', S.cols);
   try {
     const o = JSON.parse(localStorage.getItem('pdfws.settings') || '{}');
     PERSIST.forEach(k => { if (o[k]) Object.assign(S[k], o[k]); });
@@ -946,9 +967,39 @@ const thumbCache = {
 };
 const thumbQ = [];
 let thumbRunning = 0;
-function thumbKey(it) {
+/** 縮圖渲染寬度分級（避免每次調整都重畫）；上限 1600px 以控制記憶體 */
+const THUMB_STEPS = [240, 360, 480, 720, 960, 1280, 1600];
+function computeThumbPx() {
+  const grid = $('#grid');
+  const cs = getComputedStyle(grid);
+  const inner = grid.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const gap = parseFloat(cs.columnGap) || 18;
+  const card = (inner - gap * (S.cols - 1)) / S.cols;
+  if (!(card > 0)) return S.thumbPx;
+  S.cardW = card;
+  const need = card * DPR();
+  return THUMB_STEPS.find(b => b >= need) || THUMB_STEPS[THUMB_STEPS.length - 1];
+}
+function thumbBase(it) {
   const g = geo(it), s = S.sources.get(it.src);
   return `${it.src}|${it.idx}|${g.R}|${s.type === 'image' ? S.layoutVer : 0}`;
+}
+function thumbKey(it) { return `${thumbBase(it)}|${S.thumbPx}`; }
+/** 找快取中同一頁、解析度不低於需求的縮圖（例如從 1 列切到 5 列時直接沿用大圖） */
+function thumbLookup(key) {
+  const exact = thumbCache.get(key);
+  if (exact) return exact;
+  const i = key.lastIndexOf('|'), base = key.slice(0, i + 1), px = +key.slice(i + 1);
+  for (const k of [...thumbCache.m.keys()]) {
+    if (k.startsWith(base) && +k.slice(base.length) >= px) return thumbCache.get(k);
+  }
+  return null;
+}
+function setCols(n) {
+  S.cols = clamp(n, 1, 5);
+  document.documentElement.style.setProperty('--cols', S.cols);
+  try { localStorage.setItem('pdfws.cols', String(S.cols)); } catch { }
+  if (S.pages.length) renderGrid();
 }
 function showThumb(el, url) {
   const img = el.querySelector('img');
@@ -960,9 +1011,9 @@ function requestThumb(el) {
   if (!it) return;
   const key = thumbKey(it);
   el._key = key;
-  const url = thumbCache.get(key);
+  const url = thumbLookup(key);
   if (url) return showThumb(el, url);
-  if (!thumbQ.some(q => q.key === key)) thumbQ.push({ key, it });
+  if (!thumbQ.some(q => q.key === key)) thumbQ.push({ key, it, px: S.thumbPx });
   pumpThumbs();
 }
 function pumpThumbs() {
@@ -976,7 +1027,7 @@ function pumpThumbs() {
     (async () => {
       try {
         const g = geo(job.it);
-        const c = await renderItem(job.it, 240 * DPR() / g.dw, g.R);
+        const c = await renderItem(job.it, job.px / g.dw, g.R);
         const b = await canvasToBlob(c, 'image/jpeg', 0.82);
         freeCanvas(c);
         thumbCache.set(job.key, URL.createObjectURL(b));
@@ -1128,11 +1179,23 @@ function updateCard(el, it, i) {
   const sig = JSON.stringify([it.annots, it.redacts, it.crop, g.R]);
   if (ov._sig !== sig) { ov._sig = sig; ov.setAttribute('viewBox', `0 0 ${g.dw} ${g.dh}`); ov.innerHTML = overlayContent(it, g); }
   const key = thumbKey(it);
-  if (el._key !== key) { el._key = key; el.querySelector('img').removeAttribute('src'); el.querySelector('.ph').hidden = false; if (el._vis) requestThumb(el); }
+  if (el._key !== key) {
+    // 只有解析度改變（切換每列頁數）時，先保留舊縮圖，等新縮圖完成再替換，避免閃白
+    const sameBase = el._key && el._key.slice(0, el._key.lastIndexOf('|')) === key.slice(0, key.lastIndexOf('|'));
+    el._key = key;
+    if (!sameBase) { el.querySelector('img').removeAttribute('src'); el.querySelector('.ph').hidden = false; }
+    if (el._vis) requestThumb(el);
+  }
 }
 function renderGrid() {
   const grid = $('#grid'), has = S.pages.length > 0;
   $('#empty').hidden = has; $('#wsBar').hidden = !has; grid.hidden = !has;
+  if (has) {
+    S.thumbPx = computeThumbPx();
+    // 卡片太窄時隱藏縮圖上的操作鈕（仍可用上方工具列操作）
+    grid.classList.toggle('compact', S.cardW < 100);
+    grid.classList.toggle('narrow', S.cardW < 150);
+  }
   $('#btnExport').disabled = !has;
   const existing = new Map($$('.card', grid).map(el => [el.dataset.id, el]));
   const frag = document.createDocumentFragment();
@@ -3002,6 +3065,11 @@ function cmpCol(col, d) {
     col.appendChild(el);
     io.observe(el);
   });
+  // 底部浮動頁碼（sticky，跟著捲動停在欄位底部）
+  const badge = document.createElement('div');
+  badge.className = 'cmp-pgbadge';
+  col.appendChild(badge);
+  requestAnimationFrame(() => cmpUpdateBadge(col));
 }
 async function cmpRenderPage(el, d) {
   try {
@@ -3012,9 +3080,21 @@ async function cmpRenderPage(el, d) {
   } catch (e) { console.warn(e); }
 }
 /**
- * 同步捲動：以「頁」為錨點對齊（同一頁、頁內同一比例），
- * 並用目標位置辨識程式觸發的 scroll 回音事件，不依賴計時鎖。
+ * 將捲動位置切成「頁面區段」：第 i 段從上一頁底部（第 0 段從欄位最頂端，含檔名標題與留白）
+ * 延伸到第 i 頁底部。兩欄以「同一段、段內同一比例」對齊，因此捲到最上方時兩邊都會保留相同的留白。
  */
+function cmpSlots(col) {
+  const pages = $$('.cpg', col);
+  return pages.map((el, i) => ({
+    start: i === 0 ? 0 : pages[i - 1].offsetTop + pages[i - 1].offsetHeight,
+    end: el.offsetTop + el.offsetHeight,
+  }));
+}
+function cmpSlotAt(slots, y) {
+  const i = slots.findIndex(s => s.end > y);
+  return i < 0 ? slots.length - 1 : i;
+}
+/** 同步捲動：以頁為錨點對齊，並用目標位置辨識程式觸發的 scroll 回音事件 */
 function cmpSync(from, to) {
   if (!$('#cmpSync').checked) return;
   // 這次事件是我們自己設定 scrollTop 造成的 → 忽略，避免兩欄互相拉扯
@@ -3023,22 +3103,31 @@ function cmpSync(from, to) {
     from._echo = null;
     if (isEcho) return;
   }
-  const fp = $$('.cpg', from), tp = $$('.cpg', to);
-  if (!fp.length || !tp.length) return;
+  const fs = cmpSlots(from), ts = cmpSlots(to);
+  if (!fs.length || !ts.length) return;
   const top = from.scrollTop;
   let target;
   if (top >= from.scrollHeight - from.clientHeight - 1) {
     target = to.scrollHeight; // 一邊捲到底，另一邊也到底
   } else {
-    let i = fp.findIndex(el => el.offsetTop + el.offsetHeight > top);
-    if (i < 0) i = fp.length - 1;
-    const frac = clamp((top - fp[i].offsetTop) / fp[i].offsetHeight, 0, 1);
-    target = i < tp.length ? tp[i].offsetTop + frac * tp[i].offsetHeight : to.scrollHeight;
+    const i = cmpSlotAt(fs, top);
+    const frac = clamp((top - fs[i].start) / Math.max(1, fs[i].end - fs[i].start), 0, 1);
+    target = i < ts.length ? ts[i].start + frac * (ts[i].end - ts[i].start) : to.scrollHeight;
   }
   target = clamp(target, 0, to.scrollHeight - to.clientHeight);
   if (Math.abs(to.scrollTop - target) < 1) return;
   to._echo = target;
   to.scrollTop = target;
+}
+/** 更新欄位底部的「目前頁碼」：以可視區上方約 1/3 處所在的頁面為準 */
+function cmpUpdateBadge(col) {
+  const badge = $('.cmp-pgbadge', col);
+  if (!badge) return;
+  const slots = cmpSlots(col);
+  if (!slots.length) return;
+  const atEnd = col.scrollTop >= col.scrollHeight - col.clientHeight - 1;
+  const i = atEnd ? slots.length - 1 : cmpSlotAt(slots, col.scrollTop + col.clientHeight * 0.35);
+  badge.textContent = `第 ${i + 1} / ${slots.length} 頁`;
 }
 function itemsToText(items) {
   let out = '', last = null;
@@ -3109,7 +3198,13 @@ function initCompare() {
   });
   $('#cmpOnly').onchange = () => cmpRender();
   const A = $('#cmpColA'), B = $('#cmpColB');
-  A.addEventListener('scroll', () => cmpSync(A, B), { passive: true }); B.addEventListener('scroll', () => cmpSync(B, A), { passive: true });
+  const onScroll = (from, to) => () => {
+    cmpSync(from, to);
+    if (!from._badgeRaf) from._badgeRaf = requestAnimationFrame(() => { from._badgeRaf = 0; cmpUpdateBadge(from); });
+  };
+  A.addEventListener('scroll', onScroll(A, B), { passive: true });
+  B.addEventListener('scroll', onScroll(B, A), { passive: true });
+  window.addEventListener('resize', () => { if (!$('#compare').hidden) { cmpUpdateBadge(A); cmpUpdateBadge(B); } });
 }
 
 /* =====================================================================
@@ -3252,7 +3347,20 @@ function init() {
     const a = e.target.closest('[data-ws]')?.dataset.ws;
     ({ all: ACTIONS.selAll, none: ACTIONS.selNone, rotl: ACTIONS.rotl, rotr: ACTIONS.rotr, del: ACTIONS.del, edit: () => openEditor(null) })[a]?.();
   });
-  $('#thumbSize').addEventListener('input', e => document.documentElement.style.setProperty('--thumb-w', e.target.value + 'px'));
+  // 每列顯示 1–5 頁
+  const markCols = () => $$('#colSeg [data-v]').forEach(b => b.classList.toggle('on', +b.dataset.v === S.cols));
+  markCols();
+  $('#colSeg').addEventListener('click', e => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    setCols(+b.dataset.v);
+    markCols();
+  });
+  let resizeT = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => { if (S.pages.length && computeThumbPx() !== S.thumbPx) renderGrid(); }, 200);
+  });
   // 拖放檔案
   let depth = 0; const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
   window.addEventListener('dragenter', e => { if (hasFiles(e)) { depth++; document.body.classList.add('dragover'); } });
