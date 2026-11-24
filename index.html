@@ -269,7 +269,9 @@ ul.tips li{margin:3px 0}
 .sigpad{position:relative;border:1px solid var(--line2);border-radius:12px;background:#fff;height:230px;touch-action:none;overflow:hidden}
 .sigpad canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 .sigpad .base{position:absolute;left:8%;right:8%;bottom:56px;border-bottom:1.5px dashed #c5cad3;pointer-events:none}
-.sigpad .hint{position:absolute;left:8%;bottom:34px;color:#aab0bb;font-size:12px;pointer-events:none}
+.sigpad,.sigpad *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.sigpad::after{content:"請在此簽名（支援滑鼠、觸控與 Apple Pencil 壓力感應）";position:absolute;left:8%;bottom:34px;color:#aab0bb;font-size:12px;pointer-events:none}
+.sigpad.inked::after{content:none}
 
 /* ---------- responsive ---------- */
 @media (max-width:1180px){
@@ -2968,7 +2970,7 @@ function openSigPad() {
   const redraw = () => { ctx.clearRect(0, 0, c.width, c.height); strokes.forEach(s => s.pts.forEach((_, i) => seg(s, i))); };
   return modal({
     title: '手寫簽名', wide: true, ok: '使用此簽名',
-    body: `<div class="sigpad" id="sigPad"><div class="base"></div><span class="hint">請在此簽名（支援滑鼠、觸控與 Apple Pencil 壓力感應）</span><canvas></canvas></div>
+    body: `<div class="sigpad" id="sigPad"><div class="base"></div><canvas></canvas></div>
       <div class="row" style="margin-top:12px">${['#111111', '#1c3faa', '#c92a2a'].map((cl, i) => `<button class="sw ${i ? '' : 'on'}" style="background:${cl}" data-c="${cl}"></button>`).join('')}
       <label class="row" style="gap:6px;flex:1;min-width:150px"><span style="color:var(--muted)">筆寬</span><input type="range" min="1" max="6" step="0.2" value="2.6" id="sigW"></label>
       <button class="btn sm" data-s="undo">${ICON('undo')}復原</button><button class="btn sm" data-s="clear">清除</button></div>
@@ -2977,15 +2979,36 @@ function openSigPad() {
       const pad = $('#sigPad', root); c = $('canvas', pad); ctx = c.getContext('2d'); dpr = Math.max(2, DPR());
       c.width = pad.clientWidth * dpr; c.height = pad.clientHeight * dpr;
       const pt = e => { const r = c.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, p: e.pressure || 0.5, pen: e.pointerType === 'pen' }; };
-      c.addEventListener('pointerdown', e => { e.preventDefault(); c.setPointerCapture(e.pointerId); cur = { color, w: bw, pts: [pt(e)], pid: e.pointerId }; strokes.push(cur); seg(cur, 0); });
+      // iPad：阻止 Safari 把筆觸當成捲動、縮放或選取文字（這些都會中斷筆畫）
+      const block = e => { if (e.cancelable) e.preventDefault(); };
+      pad.addEventListener('touchstart', block, { passive: false });
+      pad.addEventListener('touchmove', block, { passive: false });
+      pad.addEventListener('selectstart', block);
+      pad.addEventListener('contextmenu', block);
+      let penSeen = false; // 用過 Apple Pencil 後忽略手指／手掌觸控（防誤觸）
+      c.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'pen') penSeen = true;
+        if (penSeen && e.pointerType === 'touch') return;  // 手掌碰到螢幕
+        if (cur) return;                                    // 正在書寫中，不讓第二個觸點打斷筆畫
+        e.preventDefault();
+        c.setPointerCapture(e.pointerId);
+        cur = { color, w: bw, pts: [pt(e)], pid: e.pointerId };
+        strokes.push(cur);
+        pad.classList.add('inked');
+        seg(cur, 0);
+      });
       c.addEventListener('pointermove', e => {
         if (!cur || e.pointerId !== cur.pid) return;
-        const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; for (const ce of (evs.length ? evs : [e])) { cur.pts.push(pt(ce)); seg(cur, cur.pts.length - 1); }
+        const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+        for (const ce of (evs.length ? evs : [e])) { cur.pts.push(pt(ce)); seg(cur, cur.pts.length - 1); }
       });
-      const end = () => { cur = null; }; c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+      const end = e => { if (cur && e.pointerId === cur.pid) cur = null; };
+      c.addEventListener('pointerup', end);
+      c.addEventListener('pointercancel', end);
       root.addEventListener('click', e => {
         const sw = e.target.closest('[data-c]'); if (sw) { color = sw.dataset.c; $$('[data-c]', root).forEach(b => b.classList.toggle('on', b === sw)); }
         const s = e.target.closest('[data-s]')?.dataset.s; if (s === 'undo') { strokes.pop(); redraw(); } else if (s === 'clear') { strokes = []; redraw(); }
+        if (s) pad.classList.toggle('inked', strokes.length > 0);
       });
       $('#sigW', root).addEventListener('input', e => bw = +e.target.value);
     },
