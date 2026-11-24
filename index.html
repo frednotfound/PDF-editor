@@ -230,6 +230,12 @@ ul.tips li{margin:3px 0}
   background:rgba(20,24,32,.78);color:#fff;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap}
 .cmp-pgbadge:empty{display:none}
+.cmp-endhint{position:sticky;bottom:58px;z-index:3;align-self:center;height:0;width:0;overflow:visible;pointer-events:none}
+.cmp-endhint>span{position:absolute;bottom:0;left:50%;transform:translate(-50%,8px);opacity:0;transition:opacity .2s,transform .2s;
+  display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 16px;border-radius:12px;white-space:nowrap;
+  background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.cmp-endhint>span small{font-size:12px;font-weight:500;opacity:.92}
+.cmp-endhint.on>span{opacity:1;transform:translate(-50%,0)}
 .cmp-col h5{margin:0;align-self:stretch;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cmp-diff{flex:1;overflow:auto;padding:18px;background:var(--bg)}
 .diffbox{max-width:980px;margin:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;font:13.5px/1.75 var(--font);white-space:pre-wrap;word-break:break-word}
@@ -733,6 +739,7 @@ function commit() {
   if (HIST.stack.length > HIST_MAX) HIST.stack.shift();
   HIST.idx = HIST.stack.length - 1;
   updateUndoBtns();
+  gcSources();
 }
 function restore(snap) {
   S.pages = snap.order.map(id => JSON.parse(snap.map.get(id)));
@@ -885,18 +892,42 @@ function ensureBlankSrc() {
   if (!s) { s = { id: 'blank', type: 'blank', name: '空白頁', size: 0, num: 1, color: '#9aa3b5', pages: [{ W: 595.28, H: 841.89, vx: 0, vy: 0, rot: 0 }] }; S.sources.set('blank', s); }
   return s;
 }
-function removeSource(id) {
+/** 目前工作台中「至少還有一頁」的檔案（不含空白頁）；刪光頁面的檔案不會出現在任何清單 */
+function activeSources(type) {
+  const used = new Set(S.pages.map(p => p.src));
+  return [...S.sources.values()].filter(s => s.type !== 'blank' && used.has(s.id) && (!type || s.type === type));
+}
+/** 徹底釋放一個檔案：pdf.js 文件、原始位元組、縮圖、圖片資源與相關快取 */
+function dropSource(id) {
   const s = S.sources.get(id);
   if (!s) return;
-  S.pages = S.pages.filter(p => p.src !== id);
-  S.sel = new Set([...S.sel].filter(pid => pageById(pid)));
   if (s.doc) s.doc.destroy();
   s.bytes = null;
   S.sources.delete(id);
   thumbCache.deleteWhere(k => k.startsWith(id + '|'));
-  resetHistory(); // 先清掉復原紀錄，資源才不會再被引用
   if (s.asset && !assetInUse(s.asset)) releaseAsset(s.asset);
   if (typeof PV !== 'undefined') PV.key = null;
+  if (typeof CMP !== 'undefined') CMP.textCache.delete(id);
+  if (typeof FORM !== 'undefined' && FORM.srcId === id) { FORM.srcId = null; FORM.fields = null; }
+}
+/**
+ * 頁面全被丟到垃圾桶的檔案：若復原紀錄也不再引用（超過可復原範圍），就徹底釋放記憶體。
+ * 在可復原範圍內則先保留資料，但 activeSources() 不會再列出它。
+ */
+function gcSources() {
+  const used = new Set(S.pages.map(p => p.src));
+  for (const id of [...S.sources.keys()]) {
+    if (id === 'blank' || used.has(id)) continue;
+    const tag = `"src":"${id}"`;
+    if (!HIST.stack.some(h => [...h.map.values()].some(j => j.includes(tag)))) dropSource(id);
+  }
+}
+function removeSource(id) {
+  if (!S.sources.get(id)) return;
+  S.pages = S.pages.filter(p => p.src !== id);
+  S.sel = new Set([...S.sel].filter(pid => pageById(pid)));
+  dropSource(id);
+  resetHistory(); // 清掉復原紀錄，資源才不會再被引用
   renderAll();
 }
 
@@ -1866,8 +1897,9 @@ async function compressDoc(doc, cfg, prog = () => { }) {
   return st;
 }
 function pristineSource() {
-  if (S.sources.size !== 1) return null;
-  const s = [...S.sources.values()][0];
+  const act = activeSources();
+  if (act.length !== 1) return null;
+  const s = act[0];
   if (s.type !== 'pdf' || S.pages.length !== s.num) return null;
   return S.pages.every((p, i) => p.src === s.id && p.idx === i && !p.rot && !p.crop && !p.annots.length && !p.redacts.length) ? s : null;
 }
@@ -1959,7 +1991,7 @@ function bindPanel(root, onChange) {
   });
 }
 function srcListHtml() {
-  const list = [...S.sources.values()].filter(s => s.type !== 'blank');
+  const list = activeSources();
   if (!list.length) return '<p class="note">尚未加入檔案</p>';
   return `<div class="srclist">${list.map(s => `<div class="srcitem"><span class="dot" style="background:${s.color}"></span><span class="nm" title="${esc(s.name)}">${esc(s.name)}</span><small>${s.num} 頁 · ${fmtSize(s.size)}</small><button class="btn icon sm ghost" data-a="rmSrc" data-id="${s.id}" title="移除此檔案">${ICON('x')}</button></div>`).join('')}</div>`;
 }
@@ -1969,7 +2001,7 @@ function updateSelCount() { $$('[data-selcount]').forEach(e => e.textContent = S
 /* ---------------- 各工具面板 ---------------- */
 const PANELS = {
   organize: () => head('grid', '合併與排列', '加入多個 PDF／圖片即自動串接合併。拖曳縮圖調整順序（觸控裝置：長按後拖曳）；點選縮圖可多選，選取多頁時可整批拖曳。')
-    + sec(`檔案（${[...S.sources.values()].filter(s => s.type !== 'blank').length}）`, srcListHtml() + `<div class="row" style="margin-top:10px">${btn('add', '加入檔案', '', 'plus')}</div>`)
+    + sec(`檔案（${activeSources().length}）`, srcListHtml() + `<div class="row" style="margin-top:10px">${btn('add', '加入檔案', '', 'plus')}</div>`)
     + sec('選取', `<div class="row">${btn('selAll', '全選', 'sm')}${btn('selNone', '取消', 'sm')}${btn('selInv', '反向', 'sm')}</div><div class="row">${btn('selOdd', '奇數頁', 'sm')}${btn('selEven', '偶數頁', 'sm')}</div>`)
     + sec('所選頁面 ' + selCount(), `<div class="row">${btn('rotl', '左轉', 'sm', 'rotl')}${btn('rotr', '右轉', 'sm', 'rotr')}${btn('dup', '複製', 'sm', 'copy')}${btn('del', '刪除', 'sm danger', 'trash')}</div><div class="row">${btn('toStart', '移到最前', 'sm')}${btn('toEnd', '移到最後', 'sm')}</div>`)
     + sec('其他', `<div class="row">${btn('blank', '插入空白頁', 'sm', 'blank')}${btn('reverse', '反轉頁序', 'sm')}</div>`)
@@ -2054,7 +2086,7 @@ const PANELS = {
   },
 
   form: () => {
-    const srcs = [...S.sources.values()].filter(s => s.type === 'pdf');
+    const srcs = activeSources('pdf');
     const withForm = srcs.filter(s => s.hasForm);
     let h = head('form', 'PDF 表單', '讀取 PDF 內既有的可填寫欄位，在此填寫或勾選後匯出。');
     if (!srcs.length) return h + sec('', '<p class="note">請先加入含表單欄位的 PDF。</p>');
@@ -2989,7 +3021,8 @@ async function uploadSig(file) {
 const CMP = { extra: new Map(), mode: 'side', textCache: new Map() };
 function cmpDocList() {
   const l = [];
-  S.sources.forEach(s => { if (s.type === 'pdf') l.push({ id: s.id, name: s.name, doc: s.doc, pages: s.pages }); });
+  // 只列出工作台中仍有頁面的 PDF；已丟到垃圾桶的檔案不會出現
+  activeSources('pdf').forEach(s => l.push({ id: s.id, name: s.name, doc: s.doc, pages: s.pages }));
   CMP.extra.forEach(v => l.push(v));
   return l;
 }
@@ -3065,6 +3098,13 @@ function cmpCol(col, d) {
     col.appendChild(el);
     io.observe(el);
   });
+  // 「已到底」提示（高度為 0 的 sticky 容器，不佔版面）
+  const hint = document.createElement('div');
+  hint.className = 'cmp-endhint';
+  hint.innerHTML = '<span></span>';
+  col.appendChild(hint);
+  col._lastTop = null;
+  col._wasEnd = false;
   // 底部浮動頁碼（sticky，跟著捲動停在欄位底部）
   const badge = document.createElement('div');
   badge.className = 'cmp-pgbadge';
@@ -3094,30 +3134,59 @@ function cmpSlotAt(slots, y) {
   const i = slots.findIndex(s => s.end > y);
   return i < 0 ? slots.length - 1 : i;
 }
-/** 同步捲動：以頁為錨點對齊，並用目標位置辨識程式觸發的 scroll 回音事件 */
+const cmpMaxTop = col => Math.max(0, col.scrollHeight - col.clientHeight);
+const cmpAtEnd = col => col.scrollTop >= cmpMaxTop(col) - 2;
+/**
+ * 同步捲動：以頁為錨點對齊（同一頁、頁內同一比例）。
+ * - 對方沒有這一頁（頁數較少）→ 對方停在自己的最底部，不會被拉動
+ * - 本欄已到底仍繼續往下滑 → 對方維持原位，不跳轉
+ * - 往上滑回雙方都有的頁數時自動重新對齊
+ */
 function cmpSync(from, to) {
   if (!$('#cmpSync').checked) return;
   // 這次事件是我們自己設定 scrollTop 造成的 → 忽略，避免兩欄互相拉扯
   if (from._echo != null) {
     const isEcho = Math.abs(from.scrollTop - from._echo) <= 2;
     from._echo = null;
-    if (isEcho) return;
+    if (isEcho) { from._lastTop = from.scrollTop; return; }
   }
+  // 忽略到頂／到底時的彈性回彈（overscroll）造成的位置抖動
+  const top = clamp(from.scrollTop, 0, cmpMaxTop(from));
+  if (from._lastTop != null && Math.abs(top - from._lastTop) < 1) return; // 沒有實際移動（例如已到底仍在滑）
+  from._lastTop = top;
   const fs = cmpSlots(from), ts = cmpSlots(to);
   if (!fs.length || !ts.length) return;
-  const top = from.scrollTop;
   let target;
-  if (top >= from.scrollHeight - from.clientHeight - 1) {
-    target = to.scrollHeight; // 一邊捲到底，另一邊也到底
+  if (fs.length === ts.length && top >= cmpMaxTop(from) - 1) {
+    target = cmpMaxTop(to); // 頁數相同：一邊到底，另一邊也到底
   } else {
     const i = cmpSlotAt(fs, top);
-    const frac = clamp((top - fs[i].start) / Math.max(1, fs[i].end - fs[i].start), 0, 1);
-    target = i < ts.length ? ts[i].start + frac * (ts[i].end - ts[i].start) : to.scrollHeight;
+    if (i >= ts.length) target = cmpMaxTop(to); // 對方沒有這一頁 → 停在對方最底部
+    else {
+      const frac = clamp((top - fs[i].start) / Math.max(1, fs[i].end - fs[i].start), 0, 1);
+      target = ts[i].start + frac * (ts[i].end - ts[i].start);
+    }
   }
-  target = clamp(target, 0, to.scrollHeight - to.clientHeight);
+  target = clamp(target, 0, cmpMaxTop(to));
   if (Math.abs(to.scrollTop - target) < 1) return;
   to._echo = target;
+  to._lastTop = target;
   to.scrollTop = target;
+}
+/** 本欄已到最後一頁、但另一份還有更多頁時，在本欄底部顯示提示（約 2.5 秒後淡出） */
+function cmpShowEndHint(col, other) {
+  const mine = $$('.cpg', col).length, theirs = $$('.cpg', other).length;
+  const h = $('.cmp-endhint', col);
+  if (!h || !mine || theirs <= mine) return;
+  h.firstElementChild.innerHTML = `已到最後一頁<small>另一份還有 ${theirs - mine} 頁，請捲動另一側繼續</small>`;
+  h.classList.add('on');
+  clearTimeout(h._t);
+  h._t = setTimeout(() => h.classList.remove('on'), 2500);
+}
+function cmpCheckEnd(col, other) {
+  const end = cmpAtEnd(col);
+  if (end && !col._wasEnd) cmpShowEndHint(col, other);
+  col._wasEnd = end;
 }
 /** 更新欄位底部的「目前頁碼」：以可視區上方約 1/3 處所在的頁面為準 */
 function cmpUpdateBadge(col) {
@@ -3200,10 +3269,25 @@ function initCompare() {
   const A = $('#cmpColA'), B = $('#cmpColB');
   const onScroll = (from, to) => () => {
     cmpSync(from, to);
-    if (!from._badgeRaf) from._badgeRaf = requestAnimationFrame(() => { from._badgeRaf = 0; cmpUpdateBadge(from); });
+    if (!from._badgeRaf) from._badgeRaf = requestAnimationFrame(() => {
+      from._badgeRaf = 0;
+      cmpUpdateBadge(from);
+      cmpCheckEnd(from, to);
+    });
+  };
+  // 已到底仍繼續往下滑（滾輪／觸控板／手指）時再次提示
+  const onPushPastEnd = (col, other) => {
+    let y0 = null;
+    col.addEventListener('wheel', e => { if (e.deltaY > 0 && cmpAtEnd(col)) cmpShowEndHint(col, other); }, { passive: true });
+    col.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
+    col.addEventListener('touchmove', e => {
+      if (y0 != null && y0 - e.touches[0].clientY > 12 && cmpAtEnd(col)) { cmpShowEndHint(col, other); y0 = null; }
+    }, { passive: true });
   };
   A.addEventListener('scroll', onScroll(A, B), { passive: true });
   B.addEventListener('scroll', onScroll(B, A), { passive: true });
+  onPushPastEnd(A, B);
+  onPushPastEnd(B, A);
   window.addEventListener('resize', () => { if (!$('#compare').hidden) { cmpUpdateBadge(A); cmpUpdateBadge(B); } });
 }
 
